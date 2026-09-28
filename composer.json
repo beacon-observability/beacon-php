@@ -1,6 +1,6 @@
 {
   "name": "beacon-observability/beacon-php",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Beacon PHP agent and OpenTelemetry auto-instrumentation distribution",
   "type": "library",
   "license": "Apache-2.0",
@@ -37,7 +37,17 @@
   },
   "archive": {
     "name": "beacon-php",
-    "exclude": ["/.github", "/beacon", "/composer.lock", "/dist", "/tests", "/vendor"]
+    "exclude": [
+      "/.beacon-extension",
+      "/.github",
+      "/.otelcol",
+      "/beacon",
+      "/composer.lock",
+      "/dist",
+      "/otelcol-contrib_*",
+      "/tests",
+      "/vendor"
+    ]
   },
   "config": {
     "allow-plugins": {"php-http/discovery": false},

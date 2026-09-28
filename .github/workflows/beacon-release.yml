@@ -113,6 +113,16 @@ jobs:
           composer archive --format=zip --dir=dist
           zip -j "dist/beacon-php-${version}.zip" LICENSE
           cp LICENSE dist/LICENSE
+          archive_path="dist/beacon-php-${version}.zip"
+          if unzip -Z1 "${archive_path}" | grep -Eq '(^|/)(\.beacon-extension|\.otelcol|beacon|tests|vendor)(/|$)|(^|/)otelcol-contrib_'; then
+            echo 'Release archive contains development or CI-only content.' >&2
+            exit 1
+          fi
+          archive_size="$(stat -c '%s' "${archive_path}")"
+          if [[ "${archive_size}" -ge 1048576 ]]; then
+            echo "Release archive is unexpectedly large: ${archive_size} bytes." >&2
+            exit 1
+          fi
           cd dist
           sha256sum "beacon-php-${version}.zip" LICENSE > SHA256SUMS
       - name: Install and test release archive
