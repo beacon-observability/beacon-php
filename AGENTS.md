@@ -1,9 +1,9 @@
-# 仓库协作约定
+# Repository collaboration guidelines
 
-- 始终使用简体中文沟通。
-- 本仓库是 `opentelemetry-php-contrib` 的独立下游，不使用 GitHub Fork；保留上游历史、目录结构和许可证。
-- `origin` 只指向 `beacon-observability/beacon-php`，`upstream` 只用于获取官方更新，不得向上游推送。
-- Beacon 自有代码、文档、测试和候选制品分别放在 `beacon/`、`beacon-package/` 及明确的 Beacon 组件目录中，不批量改写上游 Composer 包名和版本。
-- 自动插桩扩展 `ext-opentelemetry` 来自独立上游仓库，不把扩展源码直接复制到本仓库。
-- 日常 CI 保持最小范围；上游同步必须根据影响范围补跑对应组件测试，并记录验证结果。
-- 未完成固定源码、候选制品安装、运行环境和接收端验证前，不宣称正式支持或发布。
+- Use English for repository documentation, pull request titles, and pull request descriptions. Use Simplified Chinese when communicating directly with the user.
+- This repository is a standalone downstream of `opentelemetry-php-contrib`, not a GitHub fork. Preserve the upstream history, directory layout, and licenses.
+- `origin` must point only to `beacon-observability/beacon-php`. Use `upstream` only to fetch official updates and never push to it.
+- Keep Beacon-owned code, documentation, tests, and candidate artifacts in `beacon/`, `beacon-package/`, or clearly identified Beacon component directories. Do not rewrite upstream Composer package names or versions in bulk.
+- The `ext-opentelemetry` auto-instrumentation extension is maintained in a separate repository. Do not copy its source into this repository.
+- Keep daily CI focused. An upstream synchronization must run and record the component tests required by its impact scope.
+- Do not claim a stable release or production support until the pinned source, candidate installation, runtime environments, and receiver integration have been validated.
