@@ -13,7 +13,7 @@
   "instrumentationExtension": {
     "repository": "https://github.com/beacon-observability/beacon-php-instrumentation.git",
     "developmentBranch": "codex/bootstrap-beacon-php-instrumentation",
-    "commit": "d0d0683c9797302edbdaae784e8cfc31b9f6a3a7",
+    "commit": "e5187d1436f76aacd45eb88efbc44ed66b21393c",
     "minimumVersion": "1.4.2",
     "distribution": "Beacon",
     "upstreamRepository": "https://github.com/open-telemetry/opentelemetry-php-instrumentation.git",

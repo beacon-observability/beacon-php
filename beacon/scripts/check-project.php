@@ -51,8 +51,9 @@ $composer = json_decode(
 if (($composer['name'] ?? null) !== 'beacon-observability/beacon-php') {
     $fail('Beacon Composer package name is incorrect');
 }
-if (($composer['require']['ext-opentelemetry'] ?? null) !== '>=1.4.2') {
-    $fail('Beacon Composer package must require ext-opentelemetry >=1.4.2');
+$minimumExtensionVersion = $lock['instrumentationExtension']['minimumVersion'] ?? '';
+if (($composer['require']['ext-opentelemetry'] ?? null) !== '>=' . $minimumExtensionVersion) {
+    $fail('Beacon Composer package extension requirement must match the locked minimum version');
 }
 
 $workflowFiles = array_merge(
@@ -61,6 +62,13 @@ $workflowFiles = array_merge(
 );
 if (count($workflowFiles) !== 1 || basename($workflowFiles[0]) !== 'beacon-ci.yml') {
     $fail('Beacon PHP must expose exactly one daily CI workflow: beacon-ci.yml');
+}
+$workflowSource = count($workflowFiles) === 1
+    ? (string) file_get_contents($workflowFiles[0])
+    : '';
+$beaconExtensionCommit = $lock['instrumentationExtension']['commit'] ?? '';
+if (!str_contains($workflowSource, 'ref: ' . $beaconExtensionCommit)) {
+    $fail('Beacon CI extension ref must match upstream.lock.json');
 }
 
 $importCommit = $lock['import']['commit'] ?? '';
