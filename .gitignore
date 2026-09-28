@@ -1,7 +1,7 @@
 /*.iml
 composer.phar
 composer.lock
-!/beacon-package/composer.lock
+!/composer.lock
 var
 vendor
 .idea/
@@ -16,3 +16,4 @@ phpstan.neon
 .php-cs-fixer.cache
 
 /.env
+/dist/

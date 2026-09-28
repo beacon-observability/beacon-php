@@ -1,21 +1,22 @@
-### Maintainers
+# Contributing
 
-- [Bob Strecansky](https://github.com/bobstrecansky), Intuit
-- [Brett McBride](https://github.com/brettmc), Deakin University
+Beacon PHP is a thin distribution and integration layer. Do not copy the OpenTelemetry PHP Contrib source tree into this repository.
 
-For more information about the maintainer role, see the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#maintainer).
+For general framework or library instrumentation fixes, open a change in the relevant official OpenTelemetry PHP repository. Beacon may carry a temporary standalone package only when a production fix cannot wait for an upstream release. Such a package must:
 
-### Approvers
+- contain only the affected component;
+- use a Beacon-owned Composer package name;
+- preserve upstream license and attribution;
+- declare explicit `conflict` or `replace` rules so both implementations cannot load together;
+- include compatibility and integration tests;
+- have an upstream issue or pull request and an exit condition.
 
-- [Ago Allikmaa](https://github.com/agoallikmaa)
-- [Cedriz Ziel](https://github.com/cedricziel)
-- [Chris Lightfoot-Wild](https://github.com/ChrisLightfootWild)
+Changes to the native hook engine belong in `beacon-php-instrumentation`. Changes to component selection, diagnostics, packaging, or end-to-end validation belong here.
 
-For more information about the approver role, see the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#approver).
+Before opening a pull request, run:
 
-### Triagers
-
-
-For more information about the triager role, see the [community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#triager).
-
-Find more information about the triager role in the [community repository](https://github.com/open-telemetry/community/blob/master/community-membership.md#triager)
+```bash
+composer validate --strict --no-check-version
+composer test
+php beacon/scripts/check-project.php
+```

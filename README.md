@@ -1,39 +1,55 @@
 # Beacon PHP
 
-Beacon PHP is a PHP auto-instrumentation and enhancement project built from the complete OpenTelemetry PHP Contrib source tree. This standalone downstream repository preserves upstream history without using a GitHub fork, while maintaining Beacon-specific features, tests, versions, and release processes independently.
+Beacon PHP is a lightweight OpenTelemetry distribution for PHP applications. It combines the Beacon native hook extension with the official OpenTelemetry PHP SDK, OTLP exporter, and application-selected official auto-instrumentation packages.
 
-The Beacon Composer base package is named `beacon-observability/beacon-php`. Stable releases use `beacon-vX.Y.Z` Git tags and attach an installable Composer artifact, license, and checksums to the corresponding GitHub release. The package is not currently mirrored to public Packagist because its source is maintained in the `beacon-package/` monorepo subtree.
+This repository does **not** vendor or mirror the OpenTelemetry PHP Contrib monorepo. Framework, database, and client instrumentation is installed directly from the official `open-telemetry/*` Composer packages. Beacon-specific fixes should be contributed upstream first; a temporary, narrowly scoped Beacon package is allowed only when an urgent fix cannot wait for an upstream release.
 
-PHP auto-instrumentation consists of the component instrumentation packages in this repository and the [`Beacon PHP Instrumentation`](https://github.com/beacon-observability/beacon-php-instrumentation) native extension based on `zend_observer`. The two repositories track their respective OpenTelemetry upstream projects independently and are integration-tested at pinned versions. The currently pinned native extension release is [`v0.1.0`](https://github.com/beacon-observability/beacon-php-instrumentation/releases/tag/v0.1.0).
+## Architecture
 
-## Development resources
+| Layer | Responsibility |
+| --- | --- |
+| [`beacon-php-instrumentation`](https://github.com/beacon-observability/beacon-php-instrumentation) | Native `zend_observer` hook engine and platform binaries |
+| `beacon-observability/beacon-php` | Agent dependencies, component selection, diagnostics, packaging, and integration tests |
+| Official `open-telemetry/opentelemetry-auto-*` packages | Laravel, Symfony, PDO, Guzzle, and other component spans |
 
-- [Development guide and project boundaries](beacon/README.md)
-- [Source provenance and upstream baseline](beacon/upstream.lock.json)
-- [OpenTelemetry PHP Contrib synchronization](beacon/UPSTREAM.md)
-- [Release process](beacon/RELEASING.md)
-- [Beacon PHP 1.0.0 release notes](beacon/releases/1.0.0.md)
-- [Beacon Composer base package](beacon-package/)
-- [OpenTelemetry PHP Contrib components](src/)
-- [Contribution guide](CONTRIBUTING.md)
+There is no `beacon-php-contrib` repository or full downstream copy of OpenTelemetry PHP Contrib.
 
-The daily CI workflow validates only Beacon-owned entry points, the candidate package, and project metadata. Adopting a new upstream baseline requires the complete test suites for every affected Contrib component; daily CI does not replace upstream synchronization validation.
+## Installation
 
-## Beacon Contributors
+Install and enable the matching Beacon PHP Instrumentation extension first, then add the Agent package to the application:
 
-<p align="center">
-  <a href="https://github.com/lrwh">
-    <img src="https://avatars.githubusercontent.com/u/17264378?v=4" width="96" height="96" alt="Reid Liu">
-    <br>
-    Reid Liu
-  </a>
-</p>
+```bash
+composer require beacon-observability/beacon-php
+vendor/bin/beacon-php components
+vendor/bin/beacon-php install laravel guzzle pdo
+```
 
-## Product and upstream projects
+The `install` command modifies the current Composer project and accepts only aliases from the shipped component manifest. Use `--dry-run` to inspect the Composer command without changing the project.
 
-- [Beacon product repository](https://github.com/beacon-observability/beacon)
-- [OpenTelemetry PHP Contrib](https://github.com/open-telemetry/opentelemetry-php-contrib)
-- [Beacon PHP Instrumentation Extension](https://github.com/beacon-observability/beacon-php-instrumentation)
-- [OpenTelemetry PHP Instrumentation upstream](https://github.com/open-telemetry/opentelemetry-php-instrumentation)
+Enable the official OpenTelemetry SDK autoloader and configure OTLP using standard environment variables:
 
-This repository preserves the upstream source layout, history, package names, and [license](LICENSE). Only Beacon-owned Composer packages use the Beacon name. Upstream `open-telemetry/*` packages are never presented as Beacon artifacts by changing their versions.
+```bash
+export OTEL_PHP_AUTOLOAD_ENABLED=true
+export OTEL_SERVICE_NAME=my-php-service
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
+vendor/bin/beacon-php doctor
+```
+
+`doctor --json` and `components --json` provide machine-readable output. Diagnostics never print OTLP headers or credentials.
+
+## Development
+
+The supported runtime is PHP 8.2 or later. From the repository root:
+
+```bash
+composer install
+composer test
+php beacon/scripts/check-project.php
+```
+
+See [the project boundary](beacon/README.md), [upstream component policy](beacon/UPSTREAM.md), and [release process](beacon/RELEASING.md).
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).

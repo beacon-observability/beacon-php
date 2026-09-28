@@ -1,12 +1,11 @@
-/docker export-ignore
-/examples export-ignore
+/.github export-ignore
+/beacon export-ignore
 /tests export-ignore
 /.* export-ignore
-/*dist export-ignore
-/code-of-conduct.md
-/CODEOWNERS export-ignore
+/AGENTS.md export-ignore
+/CLAUDE.md export-ignore
 /CONTRIBUTING.md export-ignore
-/docker-compose* export-ignore
 /Makefile export-ignore
-
-/instrumentation/symfony/OtelSdkBundle/composer.json
+/code-of-conduct.md export-ignore
+/composer.lock export-ignore
+/dist export-ignore
