@@ -4,7 +4,7 @@ Beacon PHP 是 Beacon Observability 基于完整 OpenTelemetry PHP Contrib 源�
 
 当前处于工程准备阶段，尚无正式发行。候选 Composer 包名为 `beacon-observability/beacon-php`，本仓库中的候选制品仅用于验证，不代表已经发布到 Packagist 或适合生产使用。
 
-PHP 自动插桩由两部分组成：本仓库中的组件插桩包，以及基于 `zend_observer` 的 [`Beacon PHP Instrumentation`](https://github.com/beacon-observability/beacon-php-instrumentation) 原生扩展。两个仓库独立跟踪各自的 OpenTelemetry 上游，并通过固定提交联调。
+PHP 自动插桩由两部分组成：本仓库中的组件插桩包，以及基于 `zend_observer` 的 [`Beacon PHP Instrumentation`](https://github.com/beacon-observability/beacon-php-instrumentation) 原生扩展。两个仓库独立跟踪各自的 OpenTelemetry 上游，并通过固定版本联调；当前锁定的原生扩展版本为 [`v0.1.0`](https://github.com/beacon-observability/beacon-php-instrumentation/releases/tag/v0.1.0)。
 
 ## 开发入口
 
