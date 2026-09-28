@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "import": {
+    "repository": "https://github.com/open-telemetry/opentelemetry-php-contrib.git",
+    "branch": "main",
+    "commit": "c2fd48fb8423999af5d3644594f000ed799d45c8"
+  },
+  "upstream": {
+    "repository": "https://github.com/open-telemetry/opentelemetry-php-contrib.git",
+    "branch": "main",
+    "commit": "c2fd48fb8423999af5d3644594f000ed799d45c8"
+  },
+  "instrumentationExtension": {
+    "repository": "https://github.com/open-telemetry/opentelemetry-php-instrumentation.git",
+    "releaseTag": "1.4.2",
+    "releaseCommit": "273e09e15524ac3fa4f45120c0c2e7674e83ba2d"
+  }
+}
