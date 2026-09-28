@@ -31,6 +31,13 @@ foreach (['commit', 'upstreamReleaseCommit'] as $key) {
 if (($lock['instrumentationExtension']['distribution'] ?? null) !== 'Beacon') {
     $fail('instrumentationExtension.distribution must be Beacon');
 }
+$extensionBeaconVersion = $lock['instrumentationExtension']['beaconVersion'] ?? '';
+if (!is_string($extensionBeaconVersion) || !preg_match('/^\d+\.\d+\.\d+$/', $extensionBeaconVersion)) {
+    $fail('instrumentationExtension.beaconVersion must use X.Y.Z');
+}
+if (($lock['instrumentationExtension']['tag'] ?? null) !== 'v' . $extensionBeaconVersion) {
+    $fail('instrumentationExtension.tag must match its Beacon version');
+}
 
 $properties = parse_ini_file($root . '/beacon/version.properties');
 $version = $properties['version'] ?? '';
