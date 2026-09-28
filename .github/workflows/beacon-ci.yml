@@ -54,7 +54,7 @@ jobs:
       - name: Validate Composer metadata
         run: |
           composer validate --no-check-publish
-          composer validate --working-dir=beacon-package --strict
+          composer validate --working-dir=beacon-package --strict --no-check-version
       - name: Install and test Beacon package
         run: |
           composer install --working-dir=beacon-package --prefer-dist --no-progress --no-interaction

@@ -15,6 +15,7 @@ Complete all of the following requirements before pushing a stable tag:
 
 - `beacon/version.properties` is the single manually maintained source for the product development version.
 - `beacon-package/src/Version.php` is the code-level copy verified by the project check script.
+- `beacon-package/composer.json` repeats the version because Composer artifact repositories require archive metadata to contain it; the project check script verifies that it matches the manually maintained source.
 - Development versions use `X.Y.Z-dev`, release candidates use `X.Y.Z-rc.N`, and stable versions use `X.Y.Z`.
 - The final Composer version comes from an immutable Git tag. Never overwrite an artifact published for an existing version.
 
@@ -29,6 +30,6 @@ git tag -s beacon-vX.Y.Z -m "Beacon PHP X.Y.Z"
 git push origin beacon-vX.Y.Z
 ```
 
-The tag starts `.github/workflows/beacon-release.yml`. It rebuilds the pinned extension on PHP 8.2 and PHP 8.4, installs the package in clean environments, runs diagnostics, exports a validation span to the pinned OpenTelemetry Collector, builds the archive and checksums, waits for the protected `release` environment, and creates the GitHub release.
+The tag starts `.github/workflows/beacon-release.yml`. It rebuilds the pinned extension on PHP 8.2 and PHP 8.4, installs the package in clean environments, runs diagnostics, exports a validation span to the pinned OpenTelemetry Collector, builds the archive and checksums, installs the built archive into a clean consumer project and reruns diagnostics, waits for the protected `release` environment, and creates the GitHub release.
 
 Never move or overwrite a release tag. If validation or publication fails because the committed release content is defective, fix it under a new version. A transient workflow failure may be rerun against the same unchanged tag.

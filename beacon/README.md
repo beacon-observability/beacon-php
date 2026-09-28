@@ -21,7 +21,7 @@ The following commands require PHP 8.2 or later, Composer 2, and `ext-openteleme
 ```bash
 php beacon/scripts/check-project.php
 composer validate --no-check-publish
-composer validate --working-dir=beacon-package --strict
+composer validate --working-dir=beacon-package --strict --no-check-version
 composer install --working-dir=beacon-package
 composer check --working-dir=beacon-package
 COMPOSER_ROOT_VERSION=1.0.0 composer archive \
