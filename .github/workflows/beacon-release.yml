@@ -57,7 +57,7 @@ jobs:
       - name: Validate and install Composer package
         run: |
           composer validate --no-check-publish
-          composer validate --working-dir=beacon-package --strict
+          composer validate --working-dir=beacon-package --strict --no-check-version
           composer install --working-dir=beacon-package --prefer-dist --no-progress --no-interaction
           composer check --working-dir=beacon-package
       - name: Validate OTLP trace receiver path
@@ -110,6 +110,18 @@ jobs:
           cp LICENSE beacon-package/dist/LICENSE
           cd beacon-package/dist
           sha256sum beacon-php-${version}.zip LICENSE > SHA256SUMS
+      - name: Install and test release archive
+        if: matrix.php-version == '8.4'
+        shell: bash
+        run: |
+          version="$(sed -n 's/^version=//p' beacon/version.properties)"
+          consumer_dir="$(mktemp -d)"
+          cd "${consumer_dir}"
+          composer init --name=beacon/release-install-test --no-interaction
+          composer config repositories.beacon artifact "${GITHUB_WORKSPACE}/beacon-package/dist"
+          composer require "beacon-observability/beacon-php:${version}" --no-progress --no-interaction
+          vendor/bin/beacon-php --version | grep -Fx "Beacon PHP ${version}"
+          vendor/bin/beacon-php doctor
       - name: Upload release candidate
         if: matrix.php-version == '8.4'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

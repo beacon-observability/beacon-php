@@ -58,6 +58,9 @@ $composer = json_decode(
 if (($composer['name'] ?? null) !== 'beacon-observability/beacon-php') {
     $fail('Beacon Composer package name is incorrect');
 }
+if (($composer['version'] ?? null) !== $version) {
+    $fail('Beacon Composer package version must match beacon/version.properties');
+}
 $minimumExtensionVersion = $lock['instrumentationExtension']['minimumVersion'] ?? '';
 if (($composer['require']['ext-opentelemetry'] ?? null) !== '>=' . $minimumExtensionVersion) {
     $fail('Beacon Composer package extension requirement must match the locked minimum version');

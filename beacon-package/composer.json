@@ -1,5 +1,6 @@
 {
   "name": "beacon-observability/beacon-php",
+  "version": "1.0.0",
   "description": "Beacon distribution for OpenTelemetry PHP",
   "type": "library",
   "license": "Apache-2.0",
