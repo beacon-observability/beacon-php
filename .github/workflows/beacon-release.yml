@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'beacon-v*'
+      - 'v*'
 
 permissions:
   contents: read
@@ -52,7 +52,7 @@ jobs:
           version="$(sed -n 's/^version=//p' beacon/version.properties)"
           test -n "${version}"
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            test "${GITHUB_REF_NAME}" = "beacon-v${version}"
+            test "${GITHUB_REF_NAME}" = "v${version}"
           fi
           php beacon/scripts/check-project.php
       - name: Validate and install Composer package
@@ -172,7 +172,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version="$(sed -n 's/^version=//p' beacon/version.properties)"
-          gh release create "beacon-v${version}" dist/* \
+          gh release create "v${version}" dist/* \
             --repo "${GITHUB_REPOSITORY}" \
             --title "Beacon PHP ${version}" \
             --notes-file "beacon/releases/${version}.md" \

@@ -1,6 +1,6 @@
 # Beacon PHP release process
 
-The Composer package is built from the repository root. Stable tags use `beacon-vX.Y.Z`.
+The Composer package is built from the repository root. Stable tags use `vX.Y.Z`.
 
 Before publishing a release:
 
