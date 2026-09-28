@@ -13,7 +13,7 @@
   "homepage": "https://github.com/beacon-observability/beacon-php",
   "require": {
     "php": "^8.2",
-    "ext-opentelemetry": ">=1.4",
+    "ext-opentelemetry": ">=1.4.2",
     "nyholm/psr7": "^1.8",
     "open-telemetry/api": "^1.10",
     "open-telemetry/exporter-otlp": "^1.4",

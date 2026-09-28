@@ -22,9 +22,14 @@ foreach (['import', 'upstream'] as $section) {
     }
 }
 
-$extensionCommit = $lock['instrumentationExtension']['releaseCommit'] ?? '';
-if (!is_string($extensionCommit) || !preg_match('/^[0-9a-f]{40}$/', $extensionCommit)) {
-    $fail('instrumentationExtension.releaseCommit must be a full lowercase Git SHA-1');
+foreach (['commit', 'upstreamReleaseCommit'] as $key) {
+    $extensionCommit = $lock['instrumentationExtension'][$key] ?? '';
+    if (!is_string($extensionCommit) || !preg_match('/^[0-9a-f]{40}$/', $extensionCommit)) {
+        $fail(sprintf('instrumentationExtension.%s must be a full lowercase Git SHA-1', $key));
+    }
+}
+if (($lock['instrumentationExtension']['distribution'] ?? null) !== 'Beacon') {
+    $fail('instrumentationExtension.distribution must be Beacon');
 }
 
 $properties = parse_ini_file($root . '/beacon/version.properties');
@@ -46,8 +51,8 @@ $composer = json_decode(
 if (($composer['name'] ?? null) !== 'beacon-observability/beacon-php') {
     $fail('Beacon Composer package name is incorrect');
 }
-if (!isset($composer['require']['ext-opentelemetry'])) {
-    $fail('Beacon Composer package must require ext-opentelemetry');
+if (($composer['require']['ext-opentelemetry'] ?? null) !== '>=1.4.2') {
+    $fail('Beacon Composer package must require ext-opentelemetry >=1.4.2');
 }
 
 $workflowFiles = array_merge(
@@ -85,5 +90,5 @@ printf(
     "Beacon PHP project metadata is valid (version=%s, upstream=%s, ext-opentelemetry=%s).\n",
     $version,
     $lock['upstream']['commit'],
-    $lock['instrumentationExtension']['releaseTag'],
+    $lock['instrumentationExtension']['minimumVersion'],
 );

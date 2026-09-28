@@ -30,7 +30,25 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           coverage: none
-          extensions: opentelemetry-1.4.2
+      - name: Checkout pinned Beacon extension
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: beacon-observability/beacon-php-instrumentation
+          ref: d0d0683c9797302edbdaae784e8cfc31b9f6a3a7
+          path: .beacon-extension
+          persist-credentials: false
+      - name: Build and enable Beacon extension
+        shell: bash
+        run: |
+          cd .beacon-extension/ext
+          phpize
+          ./configure
+          make -j2
+          ini_dir="$(php --ini | awk -F': ' '/Scan for additional .ini files in:/{print $2}')"
+          test -d "${ini_dir}"
+          echo "extension=${PWD}/modules/opentelemetry.so" | sudo tee "${ini_dir}/99-beacon-opentelemetry.ini"
+          php --ri opentelemetry
+          php -r 'exit(OpenTelemetry\Instrumentation\BEACON_DISTRIBUTION === "Beacon" ? 0 : 1);'
       - name: Validate Beacon project metadata
         run: php beacon/scripts/check-project.php
       - name: Validate Composer metadata

@@ -20,11 +20,16 @@ if ($command !== 'doctor') {
 }
 
 $extensionVersion = phpversion('opentelemetry');
+$distributionConstant = 'OpenTelemetry\\Instrumentation\\BEACON_DISTRIBUTION';
+$extensionDistribution = defined($distributionConstant)
+    ? constant($distributionConstant)
+    : null;
 $checks = [
     'PHP >= 8.2' => version_compare(PHP_VERSION, '8.2.0', '>='),
     'ext-opentelemetry loaded' => extension_loaded('opentelemetry'),
-    'ext-opentelemetry >= 1.4' => is_string($extensionVersion)
-        && version_compare($extensionVersion, '1.4.0', '>='),
+    'ext-opentelemetry >= 1.4.2' => is_string($extensionVersion)
+        && version_compare($extensionVersion, '1.4.2', '>='),
+    'Beacon extension distribution' => $extensionDistribution === 'Beacon',
     'OpenTelemetry API installed' => interface_exists(OpenTelemetry\API\Trace\TracerProviderInterface::class),
     'OpenTelemetry SDK installed' => class_exists(OpenTelemetry\SDK\Trace\TracerProvider::class),
     'OTLP exporter installed' => class_exists(OpenTelemetry\Contrib\Otlp\SpanExporter::class),

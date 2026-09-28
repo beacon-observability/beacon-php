@@ -6,7 +6,7 @@
 
 1. 确认 `beacon-observability` 的 Packagist 组织与包名归属，确定 GitHub/Packagist 发布权限和人工审批。
 2. 明确首版组件范围。基础 Beacon 包不会强制安装 Laravel、Symfony、WordPress 等互斥框架；框架插桩必须由应用按需安装。
-3. 固定 Contrib 提交、`ext-opentelemetry` 正式版本和 Composer 依赖，检查许可证及第三方声明。
+3. 固定 Contrib 提交、`beacon-php-instrumentation` 提交、官方扩展基线和 Composer 依赖，检查许可证及第三方声明。
 4. 从固定提交构建候选归档，在 PHP 支持矩阵中全新安装并运行 `vendor/bin/beacon-php doctor`。
 5. 对声明支持的组件运行单元、静态和集成测试，并使用目标 DataKit 版本完成 OTLP Trace 链路验收。
 6. 记录制品摘要、已知限制、升级/回退方式和版本化使用文档。

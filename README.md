@@ -4,7 +4,7 @@ Beacon PHP 是 Beacon Observability 基于完整 OpenTelemetry PHP Contrib 源�
 
 当前处于工程准备阶段，尚无正式发行。候选 Composer 包名为 `beacon-observability/beacon-php`，本仓库中的候选制品仅用于验证，不代表已经发布到 Packagist 或适合生产使用。
 
-PHP 自动插桩由两部分组成：本仓库中的组件插桩包，以及基于 `zend_observer` 的 [`ext-opentelemetry`](https://github.com/open-telemetry/opentelemetry-php-instrumentation) 扩展。扩展不复制进本仓库，其采用版本在基线记录中固定。
+PHP 自动插桩由两部分组成：本仓库中的组件插桩包，以及基于 `zend_observer` 的 [`Beacon PHP Instrumentation`](https://github.com/beacon-observability/beacon-php-instrumentation) 原生扩展。两个仓库独立跟踪各自的 OpenTelemetry 上游，并通过固定提交联调。
 
 ## 开发入口
 
@@ -32,6 +32,7 @@ PHP 自动插桩由两部分组成：本仓库中的组件插桩包，以及基�
 
 - [Beacon 产品入口](https://github.com/beacon-observability/beacon)
 - [OpenTelemetry PHP Contrib](https://github.com/open-telemetry/opentelemetry-php-contrib)
-- [OpenTelemetry PHP Instrumentation Extension](https://github.com/open-telemetry/opentelemetry-php-instrumentation)
+- [Beacon PHP Instrumentation Extension](https://github.com/beacon-observability/beacon-php-instrumentation)
+- [OpenTelemetry PHP Instrumentation 上游](https://github.com/open-telemetry/opentelemetry-php-instrumentation)
 
 仓库保留上游源码布局、历史、包名和[许可证](LICENSE)。只有 Beacon 自有 Composer 包使用 Beacon 名称；上游 `open-telemetry/*` 包不会通过修改版本号伪装成 Beacon 制品。
