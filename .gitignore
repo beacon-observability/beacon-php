@@ -1,6 +1,7 @@
 /*.iml
 composer.phar
 composer.lock
+!/beacon-package/composer.lock
 var
 vendor
 .idea/

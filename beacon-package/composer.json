@@ -41,6 +41,7 @@
     ]
   },
   "archive": {
+    "name": "beacon-php",
     "exclude": [
       "/composer.lock",
       "/dist",

@@ -1,0 +1,152 @@
+name: Beacon PHP Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'beacon-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate PHP ${{ matrix.php-version }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.2', '8.4']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+      - name: Checkout pinned Beacon extension
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: beacon-observability/beacon-php-instrumentation
+          ref: 7e9b8ea638b41513f15a054e74371e15df7c22f8
+          path: .beacon-extension
+          persist-credentials: false
+      - name: Build and enable Beacon extension
+        shell: bash
+        run: |
+          cd .beacon-extension/ext
+          phpize
+          ./configure
+          make -j2
+          ini_dir="$(php --ini | awk -F': ' '/Scan for additional .ini files in:/{print $2}')"
+          test -d "${ini_dir}"
+          echo "extension=${PWD}/modules/opentelemetry.so" | sudo tee "${ini_dir}/99-beacon-opentelemetry.ini"
+          php --ri opentelemetry
+          php -r 'exit(OpenTelemetry\Instrumentation\BEACON_DISTRIBUTION === "Beacon" ? 0 : 1);'
+      - name: Validate release version
+        shell: bash
+        run: |
+          version="$(sed -n 's/^version=//p' beacon/version.properties)"
+          test -n "${version}"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            test "${GITHUB_REF_NAME}" = "beacon-v${version}"
+          fi
+          php beacon/scripts/check-project.php
+      - name: Validate and install Composer package
+        run: |
+          composer validate --no-check-publish
+          composer validate --working-dir=beacon-package --strict
+          composer install --working-dir=beacon-package --prefer-dist --no-progress --no-interaction
+          composer check --working-dir=beacon-package
+      - name: Validate OTLP trace receiver path
+        if: matrix.php-version == '8.4'
+        shell: bash
+        run: |
+          collector_version=0.161.0
+          collector_archive="otelcol-contrib_${collector_version}_linux_amd64.tar.gz"
+          collector_url="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${collector_version}"
+          curl --fail --location --retry 3 --output "${collector_archive}" "${collector_url}/${collector_archive}"
+          echo "778c689efa681ff6e4722ce9f66b9b7f57c3ba009ab2e2b43dc2e0315862c731  ${collector_archive}" | sha256sum --check
+          mkdir .otelcol
+          tar -xzf "${collector_archive}" -C .otelcol
+          printf '%s\n' \
+            'receivers:' \
+            '  otlp:' \
+            '    protocols:' \
+            '      http:' \
+            '        endpoint: 127.0.0.1:4318' \
+            'exporters:' \
+            '  debug:' \
+            '    verbosity: detailed' \
+            'service:' \
+            '  pipelines:' \
+            '    traces:' \
+            '      receivers: [otlp]' \
+            '      exporters: [debug]' > .otelcol/config.yaml
+          .otelcol/otelcol-contrib --config=.otelcol/config.yaml > .otelcol/collector.log 2>&1 &
+          collector_pid=$!
+          trap 'kill "${collector_pid}" 2>/dev/null || true' EXIT
+          for attempt in {1..20}; do
+            if curl --silent --output /dev/null http://127.0.0.1:4318/; then
+              break
+            fi
+            kill -0 "${collector_pid}"
+            sleep 1
+          done
+          php beacon/tests/emit-otlp-span.php http://127.0.0.1:4318/v1/traces
+          kill "${collector_pid}"
+          wait "${collector_pid}" || true
+          trap - EXIT
+          grep -F 'beacon.release.validation' .otelcol/collector.log
+      - name: Build release archive and checksum
+        if: matrix.php-version == '8.4'
+        shell: bash
+        run: |
+          version="$(sed -n 's/^version=//p' beacon/version.properties)"
+          COMPOSER_ROOT_VERSION="${version}" composer archive --working-dir=beacon-package --format=zip --dir=dist
+          zip -j "beacon-package/dist/beacon-php-${version}.zip" LICENSE
+          cp LICENSE beacon-package/dist/LICENSE
+          cd beacon-package/dist
+          sha256sum beacon-php-${version}.zip LICENSE > SHA256SUMS
+      - name: Upload release candidate
+        if: matrix.php-version == '8.4'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: beacon-php-release
+          path: |
+            beacon-package/dist/beacon-php-*.zip
+            beacon-package/dist/LICENSE
+            beacon-package/dist/SHA256SUMS
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    if: github.ref_type == 'tag'
+    needs: validate
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: beacon-php-release
+          path: dist
+      - name: Verify release assets
+        working-directory: dist
+        run: sha256sum --check SHA256SUMS
+      - name: Publish immutable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(sed -n 's/^version=//p' beacon/version.properties)"
+          gh release create "beacon-v${version}" dist/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "Beacon PHP ${version}" \
+            --notes-file "beacon/releases/${version}.md" \
+            --verify-tag
