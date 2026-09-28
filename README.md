@@ -1,22 +1,22 @@
 # Beacon PHP
 
-Beacon PHP 是 Beacon Observability 基于完整 OpenTelemetry PHP Contrib 源码维护的 PHP 自动插桩与增强工程。仓库保留上游历史，不使用 GitHub Fork；Beacon 自有功能、测试、版本和发行流程在本仓库独立维护。
+Beacon PHP is a PHP auto-instrumentation and enhancement project built from the complete OpenTelemetry PHP Contrib source tree. This standalone downstream repository preserves upstream history without using a GitHub fork, while maintaining Beacon-specific features, tests, versions, and release processes independently.
 
-当前处于工程准备阶段，尚无正式发行。候选 Composer 包名为 `beacon-observability/beacon-php`，本仓库中的候选制品仅用于验证，不代表已经发布到 Packagist 或适合生产使用。
+The project is currently in a pre-release engineering stage and does not have a stable Beacon PHP release. The candidate Composer package is named `beacon-observability/beacon-php`. Artifacts built from this repository are for validation only; they have not been published to Packagist and are not intended for production use.
 
-PHP 自动插桩由两部分组成：本仓库中的组件插桩包，以及基于 `zend_observer` 的 [`Beacon PHP Instrumentation`](https://github.com/beacon-observability/beacon-php-instrumentation) 原生扩展。两个仓库独立跟踪各自的 OpenTelemetry 上游，并通过固定版本联调；当前锁定的原生扩展版本为 [`v0.1.0`](https://github.com/beacon-observability/beacon-php-instrumentation/releases/tag/v0.1.0)。
+PHP auto-instrumentation consists of the component instrumentation packages in this repository and the [`Beacon PHP Instrumentation`](https://github.com/beacon-observability/beacon-php-instrumentation) native extension based on `zend_observer`. The two repositories track their respective OpenTelemetry upstream projects independently and are integration-tested at pinned versions. The currently pinned native extension release is [`v0.1.0`](https://github.com/beacon-observability/beacon-php-instrumentation/releases/tag/v0.1.0).
 
-## 开发入口
+## Development resources
 
-- [开发说明与工程边界](beacon/README.md)
-- [源码来源与上游基线](beacon/upstream.lock.json)
-- [同步 OpenTelemetry PHP Contrib](beacon/UPSTREAM.md)
-- [发行准备](beacon/RELEASING.md)
-- [Beacon Composer 候选包](beacon-package/)
-- [OpenTelemetry PHP Contrib 组件](src/)
-- [贡献指南](CONTRIBUTING.md)
+- [Development guide and project boundaries](beacon/README.md)
+- [Source provenance and upstream baseline](beacon/upstream.lock.json)
+- [OpenTelemetry PHP Contrib synchronization](beacon/UPSTREAM.md)
+- [Release preparation](beacon/RELEASING.md)
+- [Beacon Composer candidate package](beacon-package/)
+- [OpenTelemetry PHP Contrib components](src/)
+- [Contribution guide](CONTRIBUTING.md)
 
-日常 CI 只验证 Beacon 自有入口、候选包和元数据。采用新上游基线时，需按受影响范围运行对应 Contrib 组件的完整测试，不能用日常 CI 代替同步验收。
+The daily CI workflow validates only Beacon-owned entry points, the candidate package, and project metadata. Adopting a new upstream baseline requires the complete test suites for every affected Contrib component; daily CI does not replace upstream synchronization validation.
 
 ## Beacon Contributors
 
@@ -28,11 +28,11 @@ PHP 自动插桩由两部分组成：本仓库中的组件插桩包，以及基�
   </a>
 </p>
 
-## 产品与上游
+## Product and upstream projects
 
-- [Beacon 产品入口](https://github.com/beacon-observability/beacon)
+- [Beacon product repository](https://github.com/beacon-observability/beacon)
 - [OpenTelemetry PHP Contrib](https://github.com/open-telemetry/opentelemetry-php-contrib)
 - [Beacon PHP Instrumentation Extension](https://github.com/beacon-observability/beacon-php-instrumentation)
-- [OpenTelemetry PHP Instrumentation 上游](https://github.com/open-telemetry/opentelemetry-php-instrumentation)
+- [OpenTelemetry PHP Instrumentation upstream](https://github.com/open-telemetry/opentelemetry-php-instrumentation)
 
-仓库保留上游源码布局、历史、包名和[许可证](LICENSE)。只有 Beacon 自有 Composer 包使用 Beacon 名称；上游 `open-telemetry/*` 包不会通过修改版本号伪装成 Beacon 制品。
+This repository preserves the upstream source layout, history, package names, and [license](LICENSE). Only Beacon-owned Composer packages use the Beacon name. Upstream `open-telemetry/*` packages are never presented as Beacon artifacts by changing their versions.

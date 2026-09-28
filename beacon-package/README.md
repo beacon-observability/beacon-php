@@ -1,7 +1,7 @@
 # Beacon PHP Composer Package
 
-这是 Beacon PHP 的候选 Composer 包，当前仅用于开发和制品验证，尚未发布到 Packagist。
+This is the candidate Composer package for Beacon PHP. It is currently intended only for development and artifact validation and has not been published to Packagist.
 
-包中包含 Beacon 版本身份和 `beacon-php doctor` 诊断命令，并固定基础 OpenTelemetry API、SDK、OTLP Exporter 与 `ext-opentelemetry` 约束。Laravel、Symfony、Guzzle、PDO 等组件插桩必须由应用按需安装，避免基础包强制引入互斥框架。
+The package provides the Beacon version identity and the `beacon-php doctor` diagnostic command. It also pins the foundational OpenTelemetry API, SDK, OTLP Exporter, and `ext-opentelemetry` constraints. Applications must install component instrumentation for Laravel, Symfony, Guzzle, PDO, and other libraries as needed so the base package does not force mutually exclusive frameworks into the same installation.
 
-正式安装方式将在首次发行和公开索引复验完成后提供。
+Stable installation instructions will be provided after the first release and public package-index verification are complete.
