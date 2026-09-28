@@ -52,15 +52,11 @@ jobs:
       - name: Validate Beacon project metadata
         run: php beacon/scripts/check-project.php
       - name: Validate Composer metadata
-        run: |
-          composer validate --no-check-publish
-          composer validate --working-dir=beacon-package --strict --no-check-version
+        run: composer validate --strict --no-check-version
       - name: Install and test Beacon package
         run: |
-          composer install --working-dir=beacon-package --prefer-dist --no-progress --no-interaction
-          composer check --working-dir=beacon-package
+          composer install --prefer-dist --no-progress --no-interaction
+          composer check
       - name: Build candidate archive
         if: matrix.php-version == '8.4'
-        env:
-          COMPOSER_ROOT_VERSION: 0.1.0
-        run: composer archive --working-dir=beacon-package --format=zip --dir=dist
+        run: composer archive --format=zip --dir=dist

@@ -4,38 +4,37 @@ declare(strict_types=1);
 
 $root = dirname(__DIR__, 2);
 $failures = [];
-
 $fail = static function (string $message) use (&$failures): void {
     $failures[] = $message;
 };
 
-$lockPath = $root . '/beacon/upstream.lock.json';
+$lockPath = $root . '/beacon/compatibility.lock.json';
 $lock = json_decode((string) file_get_contents($lockPath), true, flags: JSON_THROW_ON_ERROR);
 if (($lock['schemaVersion'] ?? null) !== 1) {
-    $fail('upstream.lock.json schemaVersion must be 1');
+    $fail('compatibility.lock.json schemaVersion must be 1');
+}
+if (($lock['componentSource']['policy'] ?? null) !== 'official-composer-packages') {
+    $fail('Component source policy must use official Composer packages');
+}
+if (($lock['componentSource']['vendoredContribSource'] ?? null) !== false) {
+    $fail('Vendored Contrib source must be disabled');
 }
 
-foreach (['import', 'upstream'] as $section) {
-    $commit = $lock[$section]['commit'] ?? '';
-    if (!is_string($commit) || !preg_match('/^[0-9a-f]{40}$/', $commit)) {
-        $fail(sprintf('%s.commit must be a full lowercase Git SHA-1', $section));
-    }
-}
-
+$extension = $lock['instrumentationExtension'] ?? [];
 foreach (['commit', 'upstreamReleaseCommit'] as $key) {
-    $extensionCommit = $lock['instrumentationExtension'][$key] ?? '';
-    if (!is_string($extensionCommit) || !preg_match('/^[0-9a-f]{40}$/', $extensionCommit)) {
+    $commit = $extension[$key] ?? '';
+    if (!is_string($commit) || !preg_match('/^[0-9a-f]{40}$/', $commit)) {
         $fail(sprintf('instrumentationExtension.%s must be a full lowercase Git SHA-1', $key));
     }
 }
-if (($lock['instrumentationExtension']['distribution'] ?? null) !== 'Beacon') {
+if (($extension['distribution'] ?? null) !== 'Beacon') {
     $fail('instrumentationExtension.distribution must be Beacon');
 }
-$extensionBeaconVersion = $lock['instrumentationExtension']['beaconVersion'] ?? '';
+$extensionBeaconVersion = $extension['beaconVersion'] ?? '';
 if (!is_string($extensionBeaconVersion) || !preg_match('/^\d+\.\d+\.\d+$/', $extensionBeaconVersion)) {
     $fail('instrumentationExtension.beaconVersion must use X.Y.Z');
 }
-if (($lock['instrumentationExtension']['tag'] ?? null) !== 'v' . $extensionBeaconVersion) {
+if (($extension['tag'] ?? null) !== 'v' . $extensionBeaconVersion) {
     $fail('instrumentationExtension.tag must match its Beacon version');
 }
 
@@ -45,61 +44,56 @@ if (!is_string($version) || !preg_match('/^\d+\.\d+\.\d+(?:-dev|-rc\.\d+)?$/', $
     $fail('Beacon version must use X.Y.Z, X.Y.Z-dev, or X.Y.Z-rc.N');
 }
 
-$versionSource = (string) file_get_contents($root . '/beacon-package/src/Version.php');
+$versionSource = (string) file_get_contents($root . '/src/Version.php');
 if (!str_contains($versionSource, "public const VERSION = '" . $version . "';")) {
-    $fail('beacon-package/src/Version.php does not match beacon/version.properties');
+    $fail('src/Version.php does not match beacon/version.properties');
 }
 
-$composer = json_decode(
-    (string) file_get_contents($root . '/beacon-package/composer.json'),
-    true,
-    flags: JSON_THROW_ON_ERROR,
-);
+$composer = json_decode((string) file_get_contents($root . '/composer.json'), true, flags: JSON_THROW_ON_ERROR);
 if (($composer['name'] ?? null) !== 'beacon-observability/beacon-php') {
-    $fail('Beacon Composer package name is incorrect');
+    $fail('Composer package name is incorrect');
 }
 if (($composer['version'] ?? null) !== $version) {
-    $fail('Beacon Composer package version must match beacon/version.properties');
+    $fail('Composer package version must match beacon/version.properties');
 }
-$minimumExtensionVersion = $lock['instrumentationExtension']['minimumVersion'] ?? '';
+$minimumExtensionVersion = $extension['minimumUpstreamExtensionVersion'] ?? '';
 if (($composer['require']['ext-opentelemetry'] ?? null) !== '>=' . $minimumExtensionVersion) {
-    $fail('Beacon Composer package extension requirement must match the locked minimum version');
+    $fail('Extension requirement must match the compatibility lock');
 }
 
-$workflowFiles = array_merge(
-    glob($root . '/.github/workflows/*.yml') ?: [],
-    glob($root . '/.github/workflows/*.yaml') ?: [],
-);
+$manifestPath = $root . '/' . ($lock['componentSource']['manifest'] ?? '');
+$components = json_decode((string) file_get_contents($manifestPath), true, flags: JSON_THROW_ON_ERROR);
+if (!is_array($components) || $components === []) {
+    $fail('Component manifest must be a non-empty JSON object');
+} else {
+    foreach ($components as $alias => $package) {
+        if (!is_string($alias) || !preg_match('/^[a-z0-9][a-z0-9-]*$/', $alias)) {
+            $fail(sprintf('Invalid component alias: %s', (string) $alias));
+        }
+        if (!is_string($package) || !preg_match('#^open-telemetry/opentelemetry-auto-[a-z0-9-]+$#', $package)) {
+            $fail(sprintf('Component %s must reference an official auto-instrumentation package', (string) $alias));
+        }
+    }
+    if (count($components) !== count(array_unique($components))) {
+        $fail('Component package names must be unique');
+    }
+}
+
+foreach (['beacon-package', 'examples', 'docker', 'files', 'src/Instrumentation'] as $legacyPath) {
+    if (file_exists($root . '/' . $legacyPath)) {
+        $fail(sprintf('Legacy downstream path must not exist: %s', $legacyPath));
+    }
+}
+
+$workflowFiles = array_merge(glob($root . '/.github/workflows/*.yml') ?: [], glob($root . '/.github/workflows/*.yaml') ?: []);
 sort($workflowFiles);
-$expectedWorkflowFiles = [
-    $root . '/.github/workflows/beacon-ci.yml',
-    $root . '/.github/workflows/beacon-release.yml',
-];
+$expectedWorkflowFiles = [$root . '/.github/workflows/beacon-ci.yml', $root . '/.github/workflows/beacon-release.yml'];
 if ($workflowFiles !== $expectedWorkflowFiles) {
     $fail('Beacon PHP must expose the daily CI and release workflows only');
 }
-$workflowSource = is_file($expectedWorkflowFiles[0])
-    ? (string) file_get_contents($expectedWorkflowFiles[0])
-    : '';
-$beaconExtensionCommit = $lock['instrumentationExtension']['commit'] ?? '';
-if (!str_contains($workflowSource, 'ref: ' . $beaconExtensionCommit)) {
-    $fail('Beacon CI extension ref must match upstream.lock.json');
-}
-
-$importCommit = $lock['import']['commit'] ?? '';
-if (is_string($importCommit) && preg_match('/^[0-9a-f]{40}$/', $importCommit)) {
-    exec(
-        sprintf(
-            'git -C %s merge-base --is-ancestor %s HEAD 2>&1',
-            escapeshellarg($root),
-            escapeshellarg($importCommit),
-        ),
-        $output,
-        $status,
-    );
-    if ($status !== 0) {
-        $fail('Recorded import commit is not an ancestor of HEAD');
-    }
+$workflowSource = is_file($expectedWorkflowFiles[0]) ? (string) file_get_contents($expectedWorkflowFiles[0]) : '';
+if (!str_contains($workflowSource, 'ref: ' . ($extension['commit'] ?? ''))) {
+    $fail('Beacon CI extension ref must match compatibility.lock.json');
 }
 
 if ($failures !== []) {
@@ -110,8 +104,8 @@ if ($failures !== []) {
 }
 
 printf(
-    "Beacon PHP project metadata is valid (version=%s, upstream=%s, ext-opentelemetry=%s).\n",
+    "Beacon PHP project metadata is valid (version=%s, components=%d, ext-opentelemetry=%s).\n",
     $version,
-    $lock['upstream']['commit'],
-    $lock['instrumentationExtension']['minimumVersion'],
+    count($components),
+    $minimumExtensionVersion,
 );

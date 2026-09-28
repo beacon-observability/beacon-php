@@ -1,0 +1,90 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Beacon\PHP\ComponentRegistry;
+use Beacon\PHP\ComposerInstaller;
+use Beacon\PHP\Diagnostics;
+use Beacon\PHP\Version;
+
+$autoloadPath = $GLOBALS['_composer_autoload_path'] ?? dirname(__DIR__) . '/vendor/autoload.php';
+require $autoloadPath;
+
+$arguments = array_slice($argv, 1);
+$command = array_shift($arguments) ?? '--help';
+
+if ($command === '--version' || $command === 'version') {
+    printf("Beacon PHP %s\n", Version::VERSION);
+    exit(0);
+}
+
+if ($command === 'doctor') {
+    $report = Diagnostics::collect();
+    if (in_array('--json', $arguments, true)) {
+        fwrite(STDOUT, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+    } else {
+        Diagnostics::render($report, STDOUT);
+    }
+    exit(Diagnostics::hasFailures($report) ? 1 : 0);
+}
+
+if ($command === 'components') {
+    $components = ComponentRegistry::withInstallationStatus();
+    if (in_array('--json', $arguments, true)) {
+        fwrite(STDOUT, json_encode($components, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+    } else {
+        printf("%-16s %-11s %s\n", 'ALIAS', 'STATUS', 'OFFICIAL PACKAGE');
+        foreach ($components as $alias => $component) {
+            printf("%-16s %-11s %s\n", $alias, $component['installed'] ? 'installed' : 'available', $component['package']);
+        }
+    }
+    exit(0);
+}
+
+if ($command === 'install') {
+    $dryRun = false;
+    $aliases = [];
+    foreach ($arguments as $argument) {
+        if ($argument === '--dry-run') {
+            $dryRun = true;
+            continue;
+        }
+        $aliases = array_merge($aliases, array_filter(explode(',', $argument)));
+    }
+
+    if ($aliases === []) {
+        fwrite(STDERR, "Usage: beacon-php install <component> [component...] [--dry-run]\n");
+        fwrite(STDERR, "Run `beacon-php components` to list supported aliases.\n");
+        exit(2);
+    }
+
+    try {
+        $packages = ComponentRegistry::resolve($aliases);
+    } catch (InvalidArgumentException $exception) {
+        fwrite(STDERR, $exception->getMessage() . PHP_EOL);
+        exit(2);
+    }
+
+    $installer = new ComposerInstaller();
+    $installCommand = $installer->command($packages);
+    if ($dryRun) {
+        fwrite(STDOUT, $installCommand . PHP_EOL);
+        exit(0);
+    }
+
+    fwrite(STDOUT, "Installing official OpenTelemetry instrumentation packages...\n");
+    exit($installer->run($installCommand));
+}
+
+fwrite(STDOUT, <<<'HELP'
+Usage: beacon-php <command>
+
+Commands:
+  version, --version               Show the Beacon PHP version
+  doctor [--json]                  Validate the extension, SDK, exporter and configuration
+  components [--json]              List supported official OTel instrumentation packages
+  install <alias>... [--dry-run]   Install selected packages into the current Composer project
+
+HELP);
+exit($command === '--help' || $command === 'help' ? 0 : 2);

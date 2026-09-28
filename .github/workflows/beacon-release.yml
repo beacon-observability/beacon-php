@@ -26,6 +26,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           coverage: none
+          extensions: pdo_sqlite
       - name: Checkout pinned Beacon extension
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -56,14 +57,14 @@ jobs:
           php beacon/scripts/check-project.php
       - name: Validate and install Composer package
         run: |
-          composer validate --no-check-publish
-          composer validate --working-dir=beacon-package --strict --no-check-version
-          composer install --working-dir=beacon-package --prefer-dist --no-progress --no-interaction
-          composer check --working-dir=beacon-package
+          composer validate --strict --no-check-version
+          composer install --prefer-dist --no-progress --no-interaction
+          composer check
       - name: Validate OTLP trace receiver path
         if: matrix.php-version == '8.4'
         shell: bash
         run: |
+          version="$(sed -n 's/^version=//p' beacon/version.properties)"
           collector_version=0.161.0
           collector_archive="otelcol-contrib_${collector_version}_linux_amd64.tar.gz"
           collector_url="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${collector_version}"
@@ -71,21 +72,7 @@ jobs:
           echo "778c689efa681ff6e4722ce9f66b9b7f57c3ba009ab2e2b43dc2e0315862c731  ${collector_archive}" | sha256sum --check
           mkdir .otelcol
           tar -xzf "${collector_archive}" -C .otelcol
-          printf '%s\n' \
-            'receivers:' \
-            '  otlp:' \
-            '    protocols:' \
-            '      http:' \
-            '        endpoint: 127.0.0.1:4318' \
-            'exporters:' \
-            '  debug:' \
-            '    verbosity: detailed' \
-            'service:' \
-            '  pipelines:' \
-            '    traces:' \
-            '      receivers: [otlp]' \
-            '      exporters: [debug]' > .otelcol/config.yaml
-          .otelcol/otelcol-contrib --config=.otelcol/config.yaml > .otelcol/collector.log 2>&1 &
+          .otelcol/otelcol-contrib --config=beacon/tests/collector-config.yaml > .otelcol/collector.log 2>&1 &
           collector_pid=$!
           trap 'kill "${collector_pid}" 2>/dev/null || true' EXIT
           for attempt in {1..20}; do
@@ -93,23 +80,41 @@ jobs:
               break
             fi
             kill -0 "${collector_pid}"
+            if [[ "${attempt}" -eq 20 ]]; then
+              echo 'Collector did not become ready in time.' >&2
+              exit 1
+            fi
             sleep 1
           done
           php beacon/tests/emit-otlp-span.php http://127.0.0.1:4318/v1/traces
+          component_dir="$(mktemp -d)"
+          composer init --working-dir="${component_dir}" --name=beacon/component-test --no-interaction
+          composer config --working-dir="${component_dir}" repositories.beacon path "${GITHUB_WORKSPACE}"
+          composer require --working-dir="${component_dir}" \
+            "beacon-observability/beacon-php:${version}" \
+            open-telemetry/opentelemetry-auto-pdo \
+            --no-progress --no-interaction
+          OTEL_PHP_AUTOLOAD_ENABLED=true \
+          OTEL_SERVICE_NAME=beacon-pdo-release-validation \
+          OTEL_TRACES_EXPORTER=otlp \
+          OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+          OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4318/v1/traces \
+            php "${GITHUB_WORKSPACE}/beacon/tests/emit-pdo-query.php" "${component_dir}/vendor/autoload.php"
           kill "${collector_pid}"
           wait "${collector_pid}" || true
           trap - EXIT
           grep -F 'beacon.release.validation' .otelcol/collector.log
+          grep -F 'beacon_integration_probe' .otelcol/collector.log
       - name: Build release archive and checksum
         if: matrix.php-version == '8.4'
         shell: bash
         run: |
           version="$(sed -n 's/^version=//p' beacon/version.properties)"
-          COMPOSER_ROOT_VERSION="${version}" composer archive --working-dir=beacon-package --format=zip --dir=dist
-          zip -j "beacon-package/dist/beacon-php-${version}.zip" LICENSE
-          cp LICENSE beacon-package/dist/LICENSE
-          cd beacon-package/dist
-          sha256sum beacon-php-${version}.zip LICENSE > SHA256SUMS
+          composer archive --format=zip --dir=dist
+          zip -j "dist/beacon-php-${version}.zip" LICENSE
+          cp LICENSE dist/LICENSE
+          cd dist
+          sha256sum "beacon-php-${version}.zip" LICENSE > SHA256SUMS
       - name: Install and test release archive
         if: matrix.php-version == '8.4'
         shell: bash
@@ -118,7 +123,7 @@ jobs:
           consumer_dir="$(mktemp -d)"
           cd "${consumer_dir}"
           composer init --name=beacon/release-install-test --no-interaction
-          composer config repositories.beacon artifact "${GITHUB_WORKSPACE}/beacon-package/dist"
+          composer config repositories.beacon artifact "${GITHUB_WORKSPACE}/dist"
           composer require "beacon-observability/beacon-php:${version}" --no-progress --no-interaction
           vendor/bin/beacon-php --version | grep -Fx "Beacon PHP ${version}"
           vendor/bin/beacon-php doctor
@@ -128,9 +133,9 @@ jobs:
         with:
           name: beacon-php-release
           path: |
-            beacon-package/dist/beacon-php-*.zip
-            beacon-package/dist/LICENSE
-            beacon-package/dist/SHA256SUMS
+            dist/beacon-php-*.zip
+            dist/LICENSE
+            dist/SHA256SUMS
           if-no-files-found: error
 
   publish:
