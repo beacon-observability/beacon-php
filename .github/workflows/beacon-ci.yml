@@ -1,0 +1,66 @@
+name: Beacon PHP CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  beacon-package:
+    name: PHP ${{ matrix.php-version }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.2', '8.4']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+      - name: Checkout pinned Beacon extension
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: beacon-observability/beacon-php-instrumentation
+          ref: 988447ab87bbcd2231b44b968010032ca37f546f
+          path: .beacon-extension
+          persist-credentials: false
+      - name: Build and enable Beacon extension
+        shell: bash
+        run: |
+          cd .beacon-extension/ext
+          phpize
+          ./configure
+          make -j2
+          ini_dir="$(php --ini | awk -F': ' '/Scan for additional .ini files in:/{print $2}')"
+          test -d "${ini_dir}"
+          echo "extension=${PWD}/modules/opentelemetry.so" | sudo tee "${ini_dir}/99-beacon-opentelemetry.ini"
+          php --ri opentelemetry
+          php -r 'exit(OpenTelemetry\Instrumentation\BEACON_DISTRIBUTION === "Beacon" ? 0 : 1);'
+      - name: Validate Beacon project metadata
+        run: php beacon/scripts/check-project.php
+      - name: Validate Composer metadata
+        run: |
+          composer validate --no-check-publish
+          composer validate --working-dir=beacon-package --strict
+      - name: Install and test Beacon package
+        run: |
+          composer install --working-dir=beacon-package --prefer-dist --no-progress --no-interaction
+          composer check --working-dir=beacon-package
+      - name: Build candidate archive
+        if: matrix.php-version == '8.4'
+        env:
+          COMPOSER_ROOT_VERSION: 0.1.0
+        run: composer archive --working-dir=beacon-package --format=zip --dir=dist

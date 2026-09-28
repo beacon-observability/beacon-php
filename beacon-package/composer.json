@@ -1,0 +1,56 @@
+{
+  "name": "beacon-observability/beacon-php",
+  "description": "Beacon distribution for OpenTelemetry PHP",
+  "type": "library",
+  "license": "Apache-2.0",
+  "keywords": [
+    "apm",
+    "beacon",
+    "observability",
+    "opentelemetry",
+    "tracing"
+  ],
+  "homepage": "https://github.com/beacon-observability/beacon-php",
+  "require": {
+    "php": "^8.2",
+    "ext-opentelemetry": ">=1.4.2",
+    "nyholm/psr7": "^1.8",
+    "open-telemetry/api": "^1.10",
+    "open-telemetry/exporter-otlp": "^1.4",
+    "open-telemetry/sdk": "^1.15",
+    "symfony/http-client": "^6.4 || ^7.0"
+  },
+  "suggest": {
+    "open-telemetry/opentelemetry-auto-guzzle": "Automatically instrument Guzzle clients.",
+    "open-telemetry/opentelemetry-auto-laravel": "Automatically instrument Laravel applications.",
+    "open-telemetry/opentelemetry-auto-pdo": "Automatically instrument PDO database calls.",
+    "open-telemetry/opentelemetry-auto-symfony": "Automatically instrument Symfony applications."
+  },
+  "autoload": {
+    "psr-4": {
+      "Beacon\\PHP\\": "src/"
+    }
+  },
+  "bin": [
+    "bin/beacon-php"
+  ],
+  "scripts": {
+    "check": [
+      "@php bin/beacon-php --version",
+      "@php bin/beacon-php doctor"
+    ]
+  },
+  "archive": {
+    "exclude": [
+      "/composer.lock",
+      "/dist",
+      "/vendor"
+    ]
+  },
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": false
+    },
+    "sort-packages": true
+  }
+}

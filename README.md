@@ -1,86 +1,38 @@
-# OpenTelemetry php contrib library
+# Beacon PHP
 
-![CI Build](https://github.com/open-telemetry/opentelemetry-php-contrib/workflows/PHP%20QA/badge.svg)
-[![codecov](https://codecov.io/gh/open-telemetry/opentelemetry-php-contrib/branch/main/graph/badge.svg)](https://codecov.io/gh/open-telemetry/opentelemetry-php-contrib)
+Beacon PHP 是 Beacon Observability 基于完整 OpenTelemetry PHP Contrib 源码维护的 PHP 自动插桩与增强工程。仓库保留上游历史，不使用 GitHub Fork；Beacon 自有功能、测试、版本和发行流程在本仓库独立维护。
 
-## Current Project Status
-For more information, please, consult the documentation of the main [OpenTelemetry PHP project][opentelemetry-php].
+当前处于工程准备阶段，尚无正式发行。候选 Composer 包名为 `beacon-observability/beacon-php`，本仓库中的候选制品仅用于验证，不代表已经发布到 Packagist 或适合生产使用。
 
-## Issues
+PHP 自动插桩由两部分组成：本仓库中的组件插桩包，以及基于 `zend_observer` 的 [`Beacon PHP Instrumentation`](https://github.com/beacon-observability/beacon-php-instrumentation) 原生扩展。两个仓库独立跟踪各自的 OpenTelemetry 上游，并通过固定提交联调。
 
-Issues have been disabled for this repo in order to help maintain consistency between this repo and the main [opentelemetry-php] repo. If you have an issue you'd like to raise about this issue, please use the [OpenTelemetry PHP Issue section](https://github.com/open-telemetry/opentelemetry-php/issues/new/choose). Please prefix the title of the issue with [opentelemetry-php-contrib].
+## 开发入口
 
-## Installation
+- [开发说明与工程边界](beacon/README.md)
+- [源码来源与上游基线](beacon/upstream.lock.json)
+- [同步 OpenTelemetry PHP Contrib](beacon/UPSTREAM.md)
+- [发行准备](beacon/RELEASING.md)
+- [Beacon Composer 候选包](beacon-package/)
+- [OpenTelemetry PHP Contrib 组件](src/)
+- [贡献指南](CONTRIBUTING.md)
 
-### Install individual packages:
+日常 CI 只验证 Beacon 自有入口、候选包和元数据。采用新上游基线时，需按受影响范围运行对应 Contrib 组件的完整测试，不能用日常 CI 代替同步验收。
 
-(This is the recommended way to install the components)
+## Beacon Contributors
 
-Refer to the documentation for the individual components on how to install them
+<p align="center">
+  <a href="https://github.com/lrwh">
+    <img src="https://avatars.githubusercontent.com/u/17264378?v=4" width="96" height="96" alt="Reid Liu">
+    <br>
+    Reid Liu
+  </a>
+</p>
 
-- [AWS](/src/Aws/README.md)
-- [Symfony SdkBundle](/src/Symfony/README.md)
+## 产品与上游
 
-## Usage/Examples
+- [Beacon 产品入口](https://github.com/beacon-observability/beacon)
+- [OpenTelemetry PHP Contrib](https://github.com/open-telemetry/opentelemetry-php-contrib)
+- [Beacon PHP Instrumentation Extension](https://github.com/beacon-observability/beacon-php-instrumentation)
+- [OpenTelemetry PHP Instrumentation 上游](https://github.com/open-telemetry/opentelemetry-php-instrumentation)
 
-### Auto-instrumentation
-
-Auto-instrumentation requires the [ext-opentelemetry] PHP extension, and
-the installation of one or more packages from [src/Instrumentation](./src/Instrumentation)
-
-### AWS
-
-- You can find examples on how to use the AWS classes in the [examples directory](/examples/aws/README.md).
-
-### Symfony
-
-#### SdkBundle
-
-- The documentation for the Symfony SdkBundle can be found [here](/src/Symfony/README.md).
-- An example Symfony application using the SdkBundle can be found [here](https://github.com/opentelemetry-php/otel-sdk-bundle-example-sf5).
-
-### Swoole
-
-- The documentation for the Swoole context can be found [here](/src/Context/Swoole/README.md).
-
-### Yii
-
-- The documentation for Yii framework can be found [here](/src/Instrumentation/Yii/README.md).
-
-## Development
-
-Please, consult the documentation of the main [OpenTelemetry PHP project][opentelemetry-php].
-
-### Subprojects
-
-This repository is organized into multiple separate sub-projects, under `/src`.
-Please remember to run all tests as you develop, the makefile supports a `PROJECTS` variable, which corresponds to the path of the project (relative to `src/`), eg
-
-```
-$ PROJECT=Symfony PHP_VERSION=8.1 make all
-```
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md)
-
-### Emeritus
-
-- [Ago Allikmaa](https://github.com/agoallikmaa), Approver
-- [Amber Sistla](https://github.com/zsistla), Triager
-- [Beniamin](https://github.com/beniamin), Triager
-- [Cedric Ziel](https://github.com/cedricziel), Approver
-- [Fahmy Mohammed](https://github.com/Fahmy-Mohammed), Triager
-- [Jodee Varney](https://github.com/jodeev), Triager
-- [Kishan Sangani](https://github.com/kishannsangani), Triager
-- [Levi Morrison](https://github.com/morrisonlevi), Triager
-- [Przemyslaw Delewski](https://github.com/pdelewski), Triager
-- [Timo Michna](https://github.com/tidal), Triager
-
-For more information about the emeritus role, see the
-[community repository](https://github.com/open-telemetry/community/blob/main/guides/contributor/membership.md#emeritus-maintainerapprovertriager).
-
-<!-- References -->
-
-[opentelemetry-php]: https://github.com/open-telemetry/opentelemetry-php
-[ext-opentelemetry]: https://pecl.php.net/package/opentelemetry
+仓库保留上游源码布局、历史、包名和[许可证](LICENSE)。只有 Beacon 自有 Composer 包使用 Beacon 名称；上游 `open-telemetry/*` 包不会通过修改版本号伪装成 Beacon 制品。
