@@ -67,11 +67,16 @@ $workflowFiles = array_merge(
     glob($root . '/.github/workflows/*.yml') ?: [],
     glob($root . '/.github/workflows/*.yaml') ?: [],
 );
-if (count($workflowFiles) !== 1 || basename($workflowFiles[0]) !== 'beacon-ci.yml') {
-    $fail('Beacon PHP must expose exactly one daily CI workflow: beacon-ci.yml');
+sort($workflowFiles);
+$expectedWorkflowFiles = [
+    $root . '/.github/workflows/beacon-ci.yml',
+    $root . '/.github/workflows/beacon-release.yml',
+];
+if ($workflowFiles !== $expectedWorkflowFiles) {
+    $fail('Beacon PHP must expose the daily CI and release workflows only');
 }
-$workflowSource = count($workflowFiles) === 1
-    ? (string) file_get_contents($workflowFiles[0])
+$workflowSource = is_file($expectedWorkflowFiles[0])
+    ? (string) file_get_contents($expectedWorkflowFiles[0])
     : '';
 $beaconExtensionCommit = $lock['instrumentationExtension']['commit'] ?? '';
 if (!str_contains($workflowSource, 'ref: ' . $beaconExtensionCommit)) {

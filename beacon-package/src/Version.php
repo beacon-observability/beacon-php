@@ -6,7 +6,7 @@ namespace Beacon\PHP;
 
 final class Version
 {
-    public const VERSION = '0.1.0-dev';
+    public const VERSION = '1.0.0';
 
     private function __construct()
     {

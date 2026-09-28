@@ -2,7 +2,7 @@
 
 Beacon PHP is a PHP auto-instrumentation and enhancement project built from the complete OpenTelemetry PHP Contrib source tree. This standalone downstream repository preserves upstream history without using a GitHub fork, while maintaining Beacon-specific features, tests, versions, and release processes independently.
 
-The project is currently in a pre-release engineering stage and does not have a stable Beacon PHP release. The candidate Composer package is named `beacon-observability/beacon-php`. Artifacts built from this repository are for validation only; they have not been published to Packagist and are not intended for production use.
+The Beacon Composer base package is named `beacon-observability/beacon-php`. Stable releases use `beacon-vX.Y.Z` Git tags and attach an installable Composer artifact, license, and checksums to the corresponding GitHub release. The package is not currently mirrored to public Packagist because its source is maintained in the `beacon-package/` monorepo subtree.
 
 PHP auto-instrumentation consists of the component instrumentation packages in this repository and the [`Beacon PHP Instrumentation`](https://github.com/beacon-observability/beacon-php-instrumentation) native extension based on `zend_observer`. The two repositories track their respective OpenTelemetry upstream projects independently and are integration-tested at pinned versions. The currently pinned native extension release is [`v0.1.0`](https://github.com/beacon-observability/beacon-php-instrumentation/releases/tag/v0.1.0).
 
@@ -11,8 +11,9 @@ PHP auto-instrumentation consists of the component instrumentation packages in t
 - [Development guide and project boundaries](beacon/README.md)
 - [Source provenance and upstream baseline](beacon/upstream.lock.json)
 - [OpenTelemetry PHP Contrib synchronization](beacon/UPSTREAM.md)
-- [Release preparation](beacon/RELEASING.md)
-- [Beacon Composer candidate package](beacon-package/)
+- [Release process](beacon/RELEASING.md)
+- [Beacon PHP 1.0.0 release notes](beacon/releases/1.0.0.md)
+- [Beacon Composer base package](beacon-package/)
 - [OpenTelemetry PHP Contrib components](src/)
 - [Contribution guide](CONTRIBUTING.md)
 
