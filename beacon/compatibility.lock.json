@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "instrumentationExtension": {
     "repository": "https://github.com/beacon-observability/beacon-php-instrumentation.git",
-    "tag": "v1.0.0",
-    "commit": "b95a03b07149aeab68dfa2e143b7b3c4dda5dd63",
-    "beaconVersion": "1.0.0",
+    "tag": "v1.0.1",
+    "commit": "72d777a505a100cf21576422e987cb9ce9e4245e",
+    "beaconVersion": "1.0.1",
     "minimumUpstreamExtensionVersion": "1.4.2",
     "distribution": "Beacon",
     "upstreamRepository": "https://github.com/open-telemetry/opentelemetry-php-instrumentation.git",

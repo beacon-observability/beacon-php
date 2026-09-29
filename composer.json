@@ -1,6 +1,6 @@
 {
   "name": "beacon-observability/beacon-php",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Beacon PHP agent and OpenTelemetry auto-instrumentation distribution",
   "type": "library",
   "license": "Apache-2.0",

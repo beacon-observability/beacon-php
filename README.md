@@ -40,7 +40,7 @@ vendor/bin/beacon-php doctor
 
 ## Development
 
-The supported runtime is PHP 8.2 or later. From the repository root:
+The release validation and prebuilt extension matrix covers PHP 8.2, 8.3, and 8.4. From the repository root:
 
 ```bash
 composer install

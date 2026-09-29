@@ -91,9 +91,11 @@ $expectedWorkflowFiles = [$root . '/.github/workflows/beacon-ci.yml', $root . '/
 if ($workflowFiles !== $expectedWorkflowFiles) {
     $fail('Beacon PHP must expose the daily CI and release workflows only');
 }
-$workflowSource = is_file($expectedWorkflowFiles[0]) ? (string) file_get_contents($expectedWorkflowFiles[0]) : '';
-if (!str_contains($workflowSource, 'ref: ' . ($extension['commit'] ?? ''))) {
-    $fail('Beacon CI extension ref must match compatibility.lock.json');
+foreach ($expectedWorkflowFiles as $workflowFile) {
+    $workflowSource = is_file($workflowFile) ? (string) file_get_contents($workflowFile) : '';
+    if (!str_contains($workflowSource, 'ref: ' . ($extension['commit'] ?? ''))) {
+        $fail(sprintf('%s extension ref must match compatibility.lock.json', basename($workflowFile)));
+    }
 }
 
 if ($failures !== []) {
