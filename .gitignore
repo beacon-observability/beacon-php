@@ -17,3 +17,8 @@ phpstan.neon
 
 /.env
 /dist/
+
+/beacon/build-tools/vendor/
+/beacon/runtime/vendor/
+!/beacon/build-tools/composer.lock
+!/beacon/runtime/composer.lock

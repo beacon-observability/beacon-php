@@ -13,6 +13,7 @@ final class Runtime
     private Events $events;
     private Collector $collector;
     private int $failedHooks = 0;
+    private readonly bool $sbomEnabled;
 
     public static function boot(): void
     {
@@ -29,6 +30,7 @@ final class Runtime
 
     private function __construct()
     {
+        $this->sbomEnabled = Contract::enabled('BEACON_SECURITY_SBOM_ENABLED', true);
         $this->busy = true;
         $available = function_exists('OpenTelemetry\\Instrumentation\\hook');
         if ($available) {
@@ -77,7 +79,7 @@ final class Runtime
     {
         $name = ($class === null ? '' : $class . '::') . $function;
         $ok = \OpenTelemetry\Instrumentation\hook($class, $function, function (mixed $object, array $params) use ($name, $function, $argument, $rule, $role, $operation, $pathRole): void {
-            if ($this->busy || $this->closed) {
+            if ($this->busy || $this->closed || $this->isAgentWork()) {
                 return;
             }
             $this->busy = true;
@@ -115,6 +117,18 @@ final class Runtime
         }
     }
 
+    private function isAgentWork(): bool
+    {
+        if (!defined('BEACON_STANDALONE_RUNTIME_ROOT')) { return false; }
+        $root = str_replace('\\', '/', (string) constant('BEACON_STANDALONE_RUNTIME_ROOT')) . '/';
+        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 8) as $frame) {
+            $file = $frame['file'] ?? '';
+            if ($file === '' || str_starts_with($file, __DIR__ . DIRECTORY_SEPARATOR)) { continue; }
+            return str_starts_with(str_replace('\\', '/', $file), $root);
+        }
+        return false;
+    }
+
     public function shutdown(): void
     {
         if ($this->closed) {
@@ -123,7 +137,7 @@ final class Runtime
         $this->closed = true;
         $this->busy = true;
         try {
-            if (Contract::enabled('BEACON_SECURITY_SBOM_ENABLED', true)) {
+            if ($this->sbomEnabled) {
                 try {
                     Sbom::snapshot($this->events);
                 } catch (\Throwable) {

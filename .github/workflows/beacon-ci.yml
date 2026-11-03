@@ -30,7 +30,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           coverage: none
-          extensions: pdo_sqlite, curl
+          extensions: pdo_sqlite, curl, zip
       - name: Checkout pinned Beacon extension
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -63,6 +63,79 @@ jobs:
           python3 -m venv /tmp/security-schema-venv
           /tmp/security-schema-venv/bin/pip install jsonschema==4.25.1
           /tmp/security-schema-venv/bin/python tests/security/verify-events.py /tmp/security-events.jsonl /tmp/security-hook-events.jsonl
-      - name: Build candidate archive
+      - name: Build standalone release candidate
         if: matrix.php-version == '8.4'
-        run: composer archive --format=zip --dir=dist
+        run: |
+          composer install --working-dir=beacon/build-tools --prefer-dist --no-progress --no-interaction
+          composer install --working-dir=beacon/runtime --prefer-dist --no-progress --no-interaction
+          php beacon/scripts/build-runtime.php
+          composer archive --format=zip --dir=dist
+          php beacon/scripts/build-installer.php
+          php tests/standalone/project.php "$(command -v composer)"
+      - name: Verify standalone HTTP and real OTLP receipt
+        if: matrix.php-version == '8.4'
+        shell: bash
+        run: |
+          collector_version=0.161.0
+          collector_archive="otelcol-contrib_${collector_version}_linux_amd64.tar.gz"
+          collector_url="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${collector_version}"
+          curl --fail --location --retry 3 --output "${collector_archive}" "${collector_url}/${collector_archive}"
+          echo "778c689efa681ff6e4722ce9f66b9b7f57c3ba009ab2e2b43dc2e0315862c731  ${collector_archive}" | sha256sum --check
+          mkdir .otelcol
+          tar -xzf "${collector_archive}" -C .otelcol
+          .otelcol/otelcol-contrib --config=beacon/tests/collector-config.yaml > .otelcol/collector.log 2>&1 &
+          collector_pid=$!
+          trap 'kill "${collector_pid}" 2>/dev/null || true' EXIT
+          for attempt in {1..20}; do
+            if curl --silent --output /dev/null http://127.0.0.1:4318/; then
+              break
+            fi
+            kill -0 "${collector_pid}"
+            if [[ "${attempt}" -eq 20 ]]; then
+              echo 'Collector did not become ready in time.' >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          php tests/standalone/http.php http://127.0.0.1:4318
+          bash tests/standalone/servers.sh
+          kill "${collector_pid}"
+          wait "${collector_pid}" || true
+          trap - EXIT
+          /tmp/security-schema-venv/bin/python tests/standalone/verify-collector.py .otelcol/collector.log
+      - name: Upload standalone candidate
+        if: matrix.php-version == '8.4'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: beacon-standalone-candidate
+          path: |
+            dist/beacon-setup.php
+            dist/beacon-php-runtime-*.tar.gz
+          if-no-files-found: error
+
+  standalone:
+    name: Standalone PHP ${{ matrix.php-version }}
+    needs: beacon-package
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+          extensions: pdo_sqlite, curl
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: beacon-standalone-candidate
+          path: dist
+      - name: Verify cold installation and lifecycle without Composer
+        shell: bash
+        run: |
+          export BEACON_TEST_EXTENSION_ARCHIVE="$(php tests/standalone/native-asset.php "${RUNNER_TEMP}")"
+          php tests/standalone/run.php

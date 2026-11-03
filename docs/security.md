@@ -10,9 +10,9 @@ Agent; the native hook engine remains in `beacon-php-instrumentation`.
 
 ## Enablement and lifecycle
 
-Install the Beacon extension and Agent using the [release-archive installation steps](../README.md#installation),
-then require the application's Composer autoloader before
-application code. No additional Composer component package is needed for Security observations.
+Install the Beacon extension and Agent using the [unified installer](../README.md#installation).
+The standalone runtime loads automatically; Composer project mode requires the application's
+Composer autoloader before application code. No additional Composer component package is needed for Security observations.
 Existing official component instrumentation packages remain responsible for application spans.
 
 ```bash
