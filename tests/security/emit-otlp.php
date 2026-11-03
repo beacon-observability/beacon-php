@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require dirname(__DIR__, 2) . '/vendor/autoload.php';
+require $argv[1] ?? dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 $_GET = ['q' => 'PRIVATE_OTLP_VALUE_91e2'];
 $span = \OpenTelemetry\API\Globals::tracerProvider()->getTracer('beacon.security.validation')

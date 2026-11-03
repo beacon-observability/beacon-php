@@ -155,6 +155,7 @@ jobs:
           composer require "beacon-observability/beacon-php:${version}" --no-progress --no-interaction
           vendor/bin/beacon-php --version | grep -Fx "Beacon PHP ${version}"
           vendor/bin/beacon-php doctor
+          BEACON_TEST_AUTOLOAD="${consumer_dir}/vendor/autoload.php" php "${GITHUB_WORKSPACE}/tests/security/hooks.php"
       - name: Upload release candidate
         if: matrix.php-version == '8.4'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
