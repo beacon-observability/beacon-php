@@ -65,6 +65,31 @@ jobs:
           python3 -m venv /tmp/security-schema-venv
           /tmp/security-schema-venv/bin/pip install jsonschema==4.25.1
           /tmp/security-schema-venv/bin/python tests/security/verify-events.py /tmp/security-events.jsonl /tmp/security-hook-events.jsonl
+      - name: Build release archive and checksum
+        if: matrix.php-version == '8.4'
+        shell: bash
+        run: |
+          version="$(sed -n 's/^version=//p' beacon/version.properties)"
+          composer install --working-dir=beacon/build-tools --prefer-dist --no-progress --no-interaction
+          composer install --working-dir=beacon/runtime --prefer-dist --no-progress --no-interaction
+          php beacon/scripts/build-runtime.php
+          composer archive --format=zip --dir=dist
+          zip -j "dist/beacon-php-${version}.zip" LICENSE
+          php beacon/scripts/build-installer.php
+          php tests/standalone/project.php "$(command -v composer)"
+          cp LICENSE dist/LICENSE
+          archive_path="dist/beacon-php-${version}.zip"
+          if unzip -Z1 "${archive_path}" | grep -Eq '(^|/)(\.beacon-extension|\.otelcol|beacon|tests|vendor)(/|$)|(^|/)otelcol-contrib_'; then
+            echo 'Release archive contains development or CI-only content.' >&2
+            exit 1
+          fi
+          archive_size="$(stat -c '%s' "${archive_path}")"
+          if [[ "${archive_size}" -ge 1048576 ]]; then
+            echo "Release archive is unexpectedly large: ${archive_size} bytes." >&2
+            exit 1
+          fi
+          cd dist
+          sha256sum "beacon-php-${version}.zip" "beacon-php-runtime-${version}.tar.gz" beacon-setup.php LICENSE > SHA256SUMS
       - name: Validate OTLP trace receiver path
         if: matrix.php-version == '8.4'
         shell: bash
@@ -114,6 +139,8 @@ jobs:
           OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
           OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
             php tests/security/emit-otlp.php
+          php tests/standalone/http.php http://127.0.0.1:4318
+          bash tests/standalone/servers.sh
           kill "${collector_pid}"
           wait "${collector_pid}" || true
           trap - EXIT
@@ -123,26 +150,7 @@ jobs:
           grep -F 'beacon.security.sbom.snapshot' .otelcol/collector.log
           grep -F 'io.beacon.security' .otelcol/collector.log
           /tmp/security-schema-venv/bin/python tests/security/verify-collector.py .otelcol/collector.log
-      - name: Build release archive and checksum
-        if: matrix.php-version == '8.4'
-        shell: bash
-        run: |
-          version="$(sed -n 's/^version=//p' beacon/version.properties)"
-          composer archive --format=zip --dir=dist
-          zip -j "dist/beacon-php-${version}.zip" LICENSE
-          cp LICENSE dist/LICENSE
-          archive_path="dist/beacon-php-${version}.zip"
-          if unzip -Z1 "${archive_path}" | grep -Eq '(^|/)(\.beacon-extension|\.otelcol|beacon|tests|vendor)(/|$)|(^|/)otelcol-contrib_'; then
-            echo 'Release archive contains development or CI-only content.' >&2
-            exit 1
-          fi
-          archive_size="$(stat -c '%s' "${archive_path}")"
-          if [[ "${archive_size}" -ge 1048576 ]]; then
-            echo "Release archive is unexpectedly large: ${archive_size} bytes." >&2
-            exit 1
-          fi
-          cd dist
-          sha256sum "beacon-php-${version}.zip" LICENSE > SHA256SUMS
+          /tmp/security-schema-venv/bin/python tests/standalone/verify-collector.py .otelcol/collector.log
       - name: Install and test release archive
         if: matrix.php-version == '8.4'
         shell: bash
@@ -152,7 +160,9 @@ jobs:
           consumer_dir="$(mktemp -d)"
           cd "${consumer_dir}"
           composer init --name=beacon/release-install-test --no-interaction
-          composer config repositories.beacon artifact "${GITHUB_WORKSPACE}/dist"
+          mkdir archives
+          cp "${GITHUB_WORKSPACE}/dist/beacon-php-${version}.zip" archives/
+          composer config repositories.beacon artifact "${consumer_dir}/archives"
           composer require "beacon-observability/beacon-php:${version}" --no-progress --no-interaction
           vendor/bin/beacon-php --version | grep -Fx "Beacon PHP ${version}"
           vendor/bin/beacon-php doctor
@@ -165,14 +175,43 @@ jobs:
           name: beacon-php-release
           path: |
             dist/beacon-php-*.zip
+            dist/beacon-php-runtime-*.tar.gz
+            dist/beacon-setup.php
             dist/LICENSE
             dist/SHA256SUMS
           if-no-files-found: error
 
+  standalone:
+    name: Standalone PHP ${{ matrix.php-version }}
+    needs: validate
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+          extensions: pdo_sqlite, curl
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: beacon-php-release
+          path: dist
+      - name: Verify cold installation and lifecycle without Composer
+        shell: bash
+        run: |
+          export BEACON_TEST_EXTENSION_ARCHIVE="$(php tests/standalone/native-asset.php "${RUNNER_TEMP}")"
+          php tests/standalone/run.php
+
   publish:
     name: Publish GitHub release
     if: github.ref_type == 'tag'
-    needs: validate
+    needs: [validate, standalone]
     runs-on: ubuntu-24.04
     environment: release
     permissions:

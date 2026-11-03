@@ -20,26 +20,40 @@ final class Sbom
         if (count(get_included_files()) > 8192) {
             $reasons[] = 'included_file_budget';
         }
+        $candidates = [];
         if (class_exists(InstalledVersions::class)) {
             $packages = InstalledVersions::getInstalledPackages();
             if (count($packages) > 2048) {
                 $reasons[] = 'package_budget';
             }
             foreach (array_slice($packages, 0, 2048) as $package) {
-                $path = InstalledVersions::getInstallPath($package);
-                $path = $path === null ? false : realpath($path);
-                if ($path === false) {
-                    continue;
-                }
-                foreach ($files as $file) {
-                    if (str_starts_with($file, $path . DIRECTORY_SEPARATOR)) {
-                        $dependencies[] = ['name' => $package, 'version' => InstalledVersions::getPrettyVersion($package) ?? ''];
-                        break;
-                    }
-                }
+                $candidates[] = ['name' => $package, 'version' => InstalledVersions::getPrettyVersion($package) ?? '', 'path' => InstalledVersions::getInstallPath($package)];
             }
         } else {
             $reasons[] = 'composer_runtime_metadata_unavailable';
+        }
+        // The isolated distribution owns a separate Composer registry. Inspect business
+        // metadata only through its own already-registered application autoloader.
+        $application = $GLOBALS['beacon.standalone.application_packages'] ?? null;
+        if (is_callable($application)) {
+            try {
+                $observed = $application();
+                array_push($candidates, ...$observed['packages']);
+                if ($observed['truncated']) { $reasons[] = 'application_package_budget'; }
+            } catch (\Throwable) { $reasons[] = 'application_composer_metadata_unavailable'; }
+        }
+        $seen = [];
+        foreach ($candidates as $package) {
+            $path = is_string($package['path']) ? realpath($package['path']) : false;
+            $key = $package['name'] . '|' . $package['version'];
+            if ($path === false || isset($seen[$key])) { continue; }
+            foreach ($files as $file) {
+                if (str_starts_with($file, $path . DIRECTORY_SEPARATOR)) {
+                    $dependencies[] = ['name' => $package['name'], 'version' => $package['version']];
+                    $seen[$key] = true;
+                    break;
+                }
+            }
         }
         usort($dependencies, static fn (array $a, array $b): int => strcmp($a['name'], $b['name']));
         $id = 'sbom-' . hash('sha256', $events->applicationId() . '|' . $events->instanceId() . '|php');

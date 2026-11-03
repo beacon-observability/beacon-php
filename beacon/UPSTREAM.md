@@ -19,3 +19,12 @@ If a production fix cannot wait for an upstream release, create a standalone Bea
 ## Native extension
 
 The hook extension is pinned independently in `beacon/compatibility.lock.json`. Extension updates are reviewed and tested in `beacon-php-instrumentation` first, then adopted here by updating the pinned commit and minimum extension version.
+
+## Standalone packaging
+
+The runtime profile locks official components separately from the Composer library. Build-time
+namespace isolation changes PHP dependency identities and Protobuf descriptor PHP class names;
+it preserves official component behavior and protobuf wire identities. These mechanical adaptations
+are tested against real framework/client objects and a Collector. Review patch anchors on dependency
+updates. They remain necessary while the distribution ships a private SDK and can be removed if an
+upstream isolation mechanism replaces them. Do not turn packaging patches into component logic forks.
