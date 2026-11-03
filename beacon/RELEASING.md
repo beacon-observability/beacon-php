@@ -15,6 +15,9 @@ Before publishing a release:
    as documented in the README (with PHP `zip` enabled), and repeat installed-package/OTLP acceptance.
    Do not claim Packagist publication unless the package has actually been registered there.
 
+Write release notes as concise user-visible changes with links to versioned documentation.
+The GitHub release title supplies the heading; record validation evidence in the PR or issue.
+
 Development versions use `X.Y.Z-dev`, release candidates use `X.Y.Z-rc.N`, and stable versions use `X.Y.Z`. Never move a published tag.
 
 The release workflow installs the generated ZIP into a clean Composer project before publication. A release failure caused by committed content is fixed under a new version; only transient workflow failures may be rerun for an unchanged tag.
