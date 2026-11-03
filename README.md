@@ -38,6 +38,25 @@ vendor/bin/beacon-php doctor
 
 `doctor --json` and `components --json` provide machine-readable output. Diagnostics never print OTLP headers or credentials.
 
+## Security (experimental, opt-in)
+
+Enable runtime Security observations and runtime SBOM using the same OpenTelemetry SDK and
+OTLP Logs pipeline as the application:
+
+```bash
+export BEACON_SECURITY_ENABLED=true
+export OTEL_PHP_AUTOLOAD_ENABLED=true
+export OTEL_SERVICE_NAME=my-php-service
+export OTEL_LOGS_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
+```
+
+Require the application's `vendor/autoload.php` before application calls. Security is disabled by
+default, and enabling it does not write local files. The Collector must enable an OTLP **logs**
+pipeline. Findings are conservative runtime observations, not confirmed vulnerabilities.
+See [Security coverage, configuration and validation](docs/security.md) before enabling it.
+
 ## Development
 
 The release validation and prebuilt extension matrix covers PHP 8.2, 8.3, and 8.4. From the repository root:

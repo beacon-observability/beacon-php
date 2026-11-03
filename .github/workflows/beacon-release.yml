@@ -26,7 +26,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           coverage: none
-          extensions: pdo_sqlite
+          extensions: pdo_sqlite, curl
       - name: Checkout pinned Beacon extension
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -59,7 +59,12 @@ jobs:
         run: |
           composer validate --strict --no-check-version
           composer install --prefer-dist --no-progress --no-interaction
-          composer check
+          BEACON_TEST_EVENTS=/tmp/security-events.jsonl BEACON_TEST_HOOK_EVENTS=/tmp/security-hook-events.jsonl composer check
+      - name: Validate Security event schemas
+        run: |
+          python3 -m venv /tmp/security-schema-venv
+          /tmp/security-schema-venv/bin/pip install jsonschema==4.25.1
+          /tmp/security-schema-venv/bin/python tests/security/verify-events.py /tmp/security-events.jsonl /tmp/security-hook-events.jsonl
       - name: Validate OTLP trace receiver path
         if: matrix.php-version == '8.4'
         shell: bash
@@ -100,11 +105,24 @@ jobs:
           OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
           OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4318/v1/traces \
             php "${GITHUB_WORKSPACE}/beacon/tests/emit-pdo-query.php" "${component_dir}/vendor/autoload.php"
+          BEACON_TEST_AUTOLOAD="${component_dir}/vendor/autoload.php" php tests/security/hooks.php
+          BEACON_SECURITY_ENABLED=true \
+          OTEL_PHP_AUTOLOAD_ENABLED=true \
+          OTEL_SERVICE_NAME=beacon-security-release-validation \
+          OTEL_LOGS_EXPORTER=otlp \
+          OTEL_TRACES_EXPORTER=otlp \
+          OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+          OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
+            php tests/security/emit-otlp.php
           kill "${collector_pid}"
           wait "${collector_pid}" || true
           trap - EXIT
           grep -F 'beacon.release.validation' .otelcol/collector.log
           grep -F 'beacon_integration_probe' .otelcol/collector.log
+          grep -F 'beacon.security.finding' .otelcol/collector.log
+          grep -F 'beacon.security.sbom.snapshot' .otelcol/collector.log
+          grep -F 'io.beacon.security' .otelcol/collector.log
+          /tmp/security-schema-venv/bin/python tests/security/verify-collector.py .otelcol/collector.log
       - name: Build release archive and checksum
         if: matrix.php-version == '8.4'
         shell: bash

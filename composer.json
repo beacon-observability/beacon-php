@@ -24,14 +24,23 @@
     "open-telemetry/opentelemetry-auto-symfony": "Automatically instrument Symfony applications."
   },
   "autoload": {
-    "psr-4": {"Beacon\\PHP\\": "src/"}
+    "psr-4": {"Beacon\\PHP\\": "src/"},
+    "files": [
+      "src/Security/_autoload.php"
+    ]
   },
   "bin": ["bin/beacon-php"],
   "scripts": {
-    "test": "@php tests/run.php",
+    "test": [
+      "@php tests/run.php",
+      "@php tests/security/run.php",
+      "@php tests/security/hooks.php",
+      "@php tests/security/lifecycle.php",
+      "@php tests/security/http.php"
+    ],
     "check": [
       "@php bin/beacon-php --version",
-      "@php tests/run.php",
+      "@test",
       "@php bin/beacon-php doctor"
     ]
   },
