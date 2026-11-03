@@ -49,6 +49,14 @@ if (!str_contains($versionSource, "public const VERSION = '" . $version . "';"))
     $fail('src/Version.php does not match beacon/version.properties');
 }
 
+require_once $root . '/src/Security/Contract.php';
+$security = json_decode((string) file_get_contents($root . '/resources/security-contract.json'), true, flags: JSON_THROW_ON_ERROR);
+if (($security['commit'] ?? '') !== \Beacon\PHP\Security\Contract::SPEC_COMMIT
+    || ($security['schema_version'] ?? 0) !== \Beacon\PHP\Security\Contract::SCHEMA_VERSION
+    || ($security['fingerprint_version'] ?? 0) !== \Beacon\PHP\Security\Contract::FINGERPRINT_VERSION) {
+    $fail('Security artifact provenance must match the implementation');
+}
+
 $composer = json_decode((string) file_get_contents($root . '/composer.json'), true, flags: JSON_THROW_ON_ERROR);
 if (($composer['name'] ?? null) !== 'beacon-observability/beacon-php') {
     $fail('Composer package name is incorrect');

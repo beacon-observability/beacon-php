@@ -18,6 +18,15 @@ final class Diagnostics
 
         return [
             'version' => Version::VERSION,
+            'security' => [
+                'enabled' => Security\Contract::enabled('BEACON_SECURITY_ENABLED'),
+                'sbom_enabled' => Security\Contract::enabled('BEACON_SECURITY_SBOM_ENABLED', true),
+                'local_output_enabled' => Security\Contract::enabled('BEACON_SECURITY_LOCAL_OUTPUT_ENABLED'),
+                'spec_commit' => Security\Contract::SPEC_COMMIT,
+                'schema_version' => Security\Contract::SCHEMA_VERSION,
+                'fingerprint_version' => Security\Contract::FINGERPRINT_VERSION,
+                'delivery' => 'otel_api_only_no_receiver_acknowledgement',
+            ],
             'checks' => [
                 self::check('PHP >= 8.2', version_compare(PHP_VERSION, '8.2.0', '>='), PHP_VERSION),
                 self::check('ext-opentelemetry loaded', extension_loaded('opentelemetry'), $extensionVersion ?: 'not loaded'),
@@ -52,6 +61,9 @@ final class Diagnostics
         foreach ($report['checks'] as $check) {
             fprintf($stream, "[%s] %s: %s\n", $check['status'], $check['name'], $check['detail']);
         }
+
+        fprintf($stream, "[INFO] Beacon Security: %s (schema=1, fingerprint=1; no receiver acknowledgement)\n",
+            ($report['security']['enabled'] ?? false) ? 'enabled' : 'disabled');
 
         $installed = array_filter($report['components'], static fn (array $component): bool => $component['installed']);
         if ($installed === []) {

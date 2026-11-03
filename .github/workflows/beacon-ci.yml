@@ -30,6 +30,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           coverage: none
+          extensions: pdo_sqlite, curl
       - name: Checkout pinned Beacon extension
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -56,7 +57,12 @@ jobs:
       - name: Install and test Beacon package
         run: |
           composer install --prefer-dist --no-progress --no-interaction
-          composer check
+          BEACON_TEST_EVENTS=/tmp/security-events.jsonl BEACON_TEST_HOOK_EVENTS=/tmp/security-hook-events.jsonl composer check
+      - name: Validate Security event schemas
+        run: |
+          python3 -m venv /tmp/security-schema-venv
+          /tmp/security-schema-venv/bin/pip install jsonschema==4.25.1
+          /tmp/security-schema-venv/bin/python tests/security/verify-events.py /tmp/security-events.jsonl /tmp/security-hook-events.jsonl
       - name: Build candidate archive
         if: matrix.php-version == '8.4'
         run: composer archive --format=zip --dir=dist
