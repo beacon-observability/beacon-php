@@ -16,10 +16,32 @@ There is no `beacon-php-contrib` repository or full downstream copy of OpenTelem
 
 ## Installation
 
-Install and enable the matching Beacon PHP Instrumentation extension first, then add the Agent package to the application:
+Install and enable the matching Beacon PHP Instrumentation extension first. Beacon PHP is distributed
+through immutable GitHub Release ZIP assets; it is not currently published on Packagist. Composer
+must be configured with the downloaded release directory before requiring the Agent. The Composer
+artifact repository requires PHP's `zip` extension (in addition to the Agent's runtime requirements).
+
+Download the ZIP, license and checksum file from the same release and verify them:
 
 ```bash
-composer require beacon-observability/beacon-php
+beacon_version=1.2.1
+beacon_release_dir=/absolute/path/to/beacon-release
+mkdir -p "${beacon_release_dir}"
+for asset in "beacon-php-${beacon_version}.zip" LICENSE SHA256SUMS; do
+  curl --fail --location \
+    --output "${beacon_release_dir}/${asset}" \
+    "https://github.com/beacon-observability/beacon-php/releases/download/v${beacon_version}/${asset}"
+done
+(cd "${beacon_release_dir}" && sha256sum --check SHA256SUMS)
+```
+
+Use an equivalent SHA-256 verifier on systems without `sha256sum`. Keep the release directory
+available while Composer installs the package. From the application project:
+
+```bash
+cd /path/to/application
+composer config repositories.beacon artifact "${beacon_release_dir}"
+composer require "beacon-observability/beacon-php:${beacon_version}"
 vendor/bin/beacon-php components
 vendor/bin/beacon-php install laravel guzzle pdo
 ```

@@ -44,6 +44,11 @@ if (!is_string($version) || !preg_match('/^\d+\.\d+\.\d+(?:-dev|-rc\.\d+)?$/', $
     $fail('Beacon version must use X.Y.Z, X.Y.Z-dev, or X.Y.Z-rc.N');
 }
 
+$readme = (string) file_get_contents($root . '/README.md');
+if (!str_contains($readme, 'beacon_version=' . $version)) {
+    $fail('README release-download version must match beacon/version.properties');
+}
+
 $versionSource = (string) file_get_contents($root . '/src/Version.php');
 if (!str_contains($versionSource, "public const VERSION = '" . $version . "';")) {
     $fail('src/Version.php does not match beacon/version.properties');
