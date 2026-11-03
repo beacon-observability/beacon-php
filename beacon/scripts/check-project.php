@@ -44,9 +44,37 @@ if (!is_string($version) || !preg_match('/^\d+\.\d+\.\d+(?:-dev|-rc\.\d+)?$/', $
     $fail('Beacon version must use X.Y.Z, X.Y.Z-dev, or X.Y.Z-rc.N');
 }
 
+$readme = (string) file_get_contents($root . '/README.md');
+if (!str_contains($readme, 'beacon_version=' . $version)) {
+    $fail('README release-download version must match beacon/version.properties');
+}
+
+require_once $root . '/beacon-setup.php';
+if (BeaconSetup::AGENT_VERSION !== $version || BeaconSetup::EXTENSION_TAG !== ($extension['tag'] ?? null)) {
+    $fail('Installer versions must match Agent and native compatibility metadata');
+}
+$runtimeProfile = json_decode((string) file_get_contents($root . '/beacon/runtime/composer.json'), true, flags: JSON_THROW_ON_ERROR);
+if (($runtimeProfile['version'] ?? null) !== $version || ($runtimeProfile['require']['ext-opentelemetry'] ?? null) !== '>=' . $extension['minimumUpstreamExtensionVersion']) {
+    $fail('Standalone profile version and extension requirements must match the release');
+}
+foreach (['beacon/runtime', 'beacon/build-tools'] as $directory) {
+    if (!is_file($root . '/' . $directory . '/composer.lock')) { $fail('Build dependency locks must be committed: ' . $directory); }
+}
+foreach (BeaconSetup::EXTENSION_ASSETS as $name => $hash) {
+    if (!str_starts_with($name, 'beacon-php-instrumentation-' . $extensionBeaconVersion . '-') || !preg_match('/^[0-9a-f]{64}$/', $hash)) { $fail('Invalid native asset identity or digest'); }
+}
+
 $versionSource = (string) file_get_contents($root . '/src/Version.php');
 if (!str_contains($versionSource, "public const VERSION = '" . $version . "';")) {
     $fail('src/Version.php does not match beacon/version.properties');
+}
+
+require_once $root . '/src/Security/Contract.php';
+$security = json_decode((string) file_get_contents($root . '/resources/security-contract.json'), true, flags: JSON_THROW_ON_ERROR);
+if (($security['commit'] ?? '') !== \Beacon\PHP\Security\Contract::SPEC_COMMIT
+    || ($security['schema_version'] ?? 0) !== \Beacon\PHP\Security\Contract::SCHEMA_VERSION
+    || ($security['fingerprint_version'] ?? 0) !== \Beacon\PHP\Security\Contract::FINGERPRINT_VERSION) {
+    $fail('Security artifact provenance must match the implementation');
 }
 
 $composer = json_decode((string) file_get_contents($root . '/composer.json'), true, flags: JSON_THROW_ON_ERROR);

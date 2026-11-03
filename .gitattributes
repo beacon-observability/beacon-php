@@ -9,3 +9,5 @@
 /code-of-conduct.md export-ignore
 /composer.lock export-ignore
 /dist export-ignore
+
+/beacon-setup.php export-ignore

@@ -16,27 +16,61 @@ There is no `beacon-php-contrib` repository or full downstream copy of OpenTelem
 
 ## Installation
 
-Install and enable the matching Beacon PHP Instrumentation extension first, then add the Agent package to the application:
+Use the versioned Beacon PHP installer. It selects the matching native extension, verifies archive
+checksums, installs the prebuilt Agent runtime, configures PHP startup, and runs diagnostics.
+Standalone installation requires no Composer and leaves application Composer files unchanged.
 
 ```bash
-composer require beacon-observability/beacon-php
-vendor/bin/beacon-php components
-vendor/bin/beacon-php install laravel guzzle pdo
+beacon_version=1.3.0
+curl --fail --location --output beacon-setup.php \
+  "https://github.com/beacon-observability/beacon-php/releases/download/v${beacon_version}/beacon-setup.php"
+php beacon-setup.php --php-bin=all \
+  --service-name=my-php-service \
+  --otlp-endpoint=http://127.0.0.1:4318
 ```
 
-The `install` command modifies the current Composer project and accepts only aliases from the shipped component manifest. Use `--dry-run` to inspect the Composer command without changing the project.
+Run with the permissions required by PHP's extension/INI directories and the installation directory
+(default `/opt/beacon/php` on Unix). System PHP installations usually require administrator access;
+container builds can run the same command as their build user. `--dry-run` shows the plan first.
+Release `SHA256SUMS` also contains the installer checksum for independent verification.
 
-Enable the official OpenTelemetry SDK autoloader and configure OTLP using standard environment variables:
+The installer records service and endpoint defaults. Restart PHP-FPM or Apache after installation.
+The **application service or container environment** can override these defaults:
 
 ```bash
-export OTEL_PHP_AUTOLOAD_ENABLED=true
-export OTEL_SERVICE_NAME=my-php-service
-export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
-vendor/bin/beacon-php doctor
+OTEL_SERVICE_NAME=my-php-service
+OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
 ```
 
-`doctor --json` and `components --json` provide machine-readable output. Diagnostics never print OTLP headers or credentials.
+PHP-FPM pools must pass environment overrides to workers through their pool configuration; the
+installer defaults also work with `clear_env=yes`. The standalone Agent defaults to OTLP HTTP/protobuf. It loads automatically before application code
+and bundles selected official PDO, cURL, Guzzle, Laravel and Symfony instrumentation. The native
+extension remains maintained in `beacon-php-instrumentation`; users do not need to install it separately.
+
+Use the same entry point for diagnostics, upgrades and removal:
+
+```bash
+php beacon-setup.php doctor --php-bin=all
+# Download the installer from the target release before upgrading.
+php beacon-setup.php upgrade --php-bin=all
+php beacon-setup.php uninstall --php-bin=all
+```
+
+See [standalone deployment and compatibility](docs/standalone.md) for offline installation,
+existing startup hooks, rollback and advanced Composer project integration.
+
+## Security (experimental, opt-in)
+
+Enable Security during installation or an idempotent reinstall:
+
+```bash
+php beacon-setup.php --php-bin=all --enable-security
+```
+
+Alternatively set `BEACON_SECURITY_ENABLED=true` in the application environment. Security and local
+output are disabled by default. Security reuses OTLP Logs, so the Collector must enable a **logs**
+pipeline. Findings are conservative observations, not confirmed vulnerabilities.
+See [Security coverage and configuration](docs/security.md).
 
 ## Development
 
