@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "require": {
     "php": "^8.2",
-    "ext-opentelemetry": ">=1.4.2",
+    "ext-opentelemetry": ">=1.5.0",
     "nyholm/psr7": "^1.8",
     "open-telemetry/api": "^1.10",
     "open-telemetry/exporter-otlp": "^1.4",
