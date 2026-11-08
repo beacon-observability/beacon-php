@@ -21,7 +21,7 @@ checksums, installs the prebuilt Agent runtime, configures PHP startup, and runs
 Standalone installation requires no Composer and leaves application Composer files unchanged.
 
 ```bash
-beacon_version=1.3.0
+beacon_version=1.3.1
 curl --fail --location --output beacon-setup.php \
   "https://github.com/beacon-observability/beacon-php/releases/download/v${beacon_version}/beacon-setup.php"
 php beacon-setup.php --php-bin=all \

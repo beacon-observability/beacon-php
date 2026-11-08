@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: beacon-observability/beacon-php-instrumentation
-          ref: 72d777a505a100cf21576422e987cb9ce9e4245e
+          ref: 97000861a7720142084fe44ce718af60afad1e94
           path: .beacon-extension
           persist-credentials: false
       - name: Build and enable Beacon extension
