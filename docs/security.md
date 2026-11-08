@@ -143,7 +143,7 @@ one part. There is no background refresh or build-SBOM import. Snapshot construc
 ## Validation evidence and performance
 
 Local validation used Linux x86_64 and Beacon extension 1.0.1 / upstream engine 1.4.2, built from
-pinned commit `72d777a505a100cf21576422e987cb9ce9e4245e`, on PHP 8.2.34 and 8.4.26. A PHP 8.3.35
+pinned commit `97000861a7720142084fe44ce718af60afad1e94`, on PHP 8.2.34 and 8.4.26. A PHP 8.3.35
 Beacon container also passed the tests. Contract/privacy/budget tests, real PDO SQLite/file/command/
 cURL observers, result/exception preservation, enable/disable lifecycle gates, and real HTTP input/request isolation are automated. A separately
 installed release archive passed the same native hook tests alongside official PDO auto-instrumentation

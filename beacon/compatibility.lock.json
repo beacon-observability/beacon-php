@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "instrumentationExtension": {
     "repository": "https://github.com/beacon-observability/beacon-php-instrumentation.git",
-    "tag": "v1.0.1",
-    "commit": "72d777a505a100cf21576422e987cb9ce9e4245e",
-    "beaconVersion": "1.0.1",
-    "minimumUpstreamExtensionVersion": "1.4.2",
+    "tag": "v1.1.0",
+    "commit": "97000861a7720142084fe44ce718af60afad1e94",
+    "beaconVersion": "1.1.0",
+    "minimumUpstreamExtensionVersion": "1.5.0",
     "distribution": "Beacon",
     "upstreamRepository": "https://github.com/open-telemetry/opentelemetry-php-instrumentation.git",
-    "upstreamReleaseTag": "1.4.2",
-    "upstreamReleaseCommit": "273e09e15524ac3fa4f45120c0c2e7674e83ba2d"
+    "upstreamReleaseTag": "1.5.0",
+    "upstreamReleaseCommit": "dd0e147a80d0aeac15c95ec119b146c0b2bc3285"
   },
   "componentSource": {
     "policy": "official-composer-packages",

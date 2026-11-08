@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "17ae7c11d3dcf22b31826bf0c7af1cad",
+    "content-hash": "9a357474ab30934e1a6672ee21d2dfbb",
     "packages": [
         {
             "name": "brick/math",
@@ -1815,7 +1815,7 @@
     "prefer-lowest": false,
     "platform": {
         "php": "^8.2",
-        "ext-opentelemetry": ">=1.4.2"
+        "ext-opentelemetry": ">=1.5.0"
     },
     "platform-dev": [],
     "plugin-api-version": "2.6.0"
