@@ -15,29 +15,29 @@ final class BeaconSetup
     public const AGENT_REPOSITORY = 'https://github.com/beacon-observability/beacon-php';
     public const RUNTIME_SHA256 = '@runtime_sha256@';
     public const AGENT_SHA256 = '@agent_sha256@';
-    public const EXTENSION_VERSION = '1.0.1';
-    public const EXTENSION_TAG = 'v1.0.1';
+    public const EXTENSION_VERSION = '1.1.0';
+    public const EXTENSION_TAG = 'v1.1.0';
     public const EXTENSION_REPOSITORY = 'https://github.com/beacon-observability/beacon-php-instrumentation';
     public const INI_FILENAME = '99-beacon-opentelemetry.ini';
     public const INI_MARKER = '; Managed by Beacon PHP setup';
 
     /** @var array<string, string> */
     public const EXTENSION_ASSETS = [
-        'beacon-php-instrumentation-1.0.1-php8.2-nts-linux-arm64.tar.gz' => '57ba918b80da0070661ac6174418cdbd480ae2d721ce6a5c8ee8bab44d78bce6',
-        'beacon-php-instrumentation-1.0.1-php8.2-nts-linux-x86_64.tar.gz' => '0be694a66f1d831d6a75e4d2845a237035e8a6d7cd0435f3fac6f6cba3c5abc6',
-        'beacon-php-instrumentation-1.0.1-php8.2-nts-macos-arm64.tar.gz' => '7e5797234284816440352ce64ac115fc64670b7dcf9ab34d3d1a2b0648616b82',
-        'beacon-php-instrumentation-1.0.1-php8.2-nts-vs17-x86_64.zip' => 'da0c8a16f8ecfeeded60ec47c074868528961414c1d0e498c9956db11a9c75f6',
-        'beacon-php-instrumentation-1.0.1-php8.2-ts-vs17-x86_64.zip' => 'a0ce165c72a00d490be6fb9ecf012b1ca2548cd5fc2515895003baef535b3105',
-        'beacon-php-instrumentation-1.0.1-php8.3-nts-linux-arm64.tar.gz' => '801978bea1cc80d92628d5da068eef3800508f5fb0aaeb2cb4ecf852c08301bc',
-        'beacon-php-instrumentation-1.0.1-php8.3-nts-linux-x86_64.tar.gz' => '34719ade9f855b146397d1de3727136205a4e646b4c016189a3d6caac1afc4b9',
-        'beacon-php-instrumentation-1.0.1-php8.3-nts-macos-arm64.tar.gz' => '918ed1172c909a2c2b3692293d0822833e793d5c10ee1dbf24dd46d6f0020f09',
-        'beacon-php-instrumentation-1.0.1-php8.3-nts-vs17-x86_64.zip' => '453536fe6a8bc37520c843a3da2fbd2423f9c269da53808ad3f23b9a3bced83f',
-        'beacon-php-instrumentation-1.0.1-php8.3-ts-vs17-x86_64.zip' => 'c5ed0b2ab506768675878f43fe1d08f990c0de9316b06fbaa59668532ce9ea13',
-        'beacon-php-instrumentation-1.0.1-php8.4-nts-linux-arm64.tar.gz' => 'd524e42c45e2c171389fd94e943a47884b3d94f27dc18a7ed31ac5e7373e9888',
-        'beacon-php-instrumentation-1.0.1-php8.4-nts-linux-x86_64.tar.gz' => 'fa3b833ab9f6184431b9a6224ba460d9ff9b6617559c11ca63adafc5a2eac29d',
-        'beacon-php-instrumentation-1.0.1-php8.4-nts-macos-arm64.tar.gz' => '05e3dfaaf52661006934bda8759ff1d18ec1c1ed6f976b58d8b91bbde38cd3a6',
-        'beacon-php-instrumentation-1.0.1-php8.4-nts-vs17-x86_64.zip' => 'f9594c769f051606876fc6184ac16b5261d8636bb42c86d9299d3f65fa91c32d',
-        'beacon-php-instrumentation-1.0.1-php8.4-ts-vs17-x86_64.zip' => 'a3bc1e5353228979e4b9c92bf0ebb68d9a8df455f5b22b7388cd6aff52cbb4f8',
+        'beacon-php-instrumentation-1.1.0-php8.2-nts-linux-arm64.tar.gz' => '05d25043c310f2c017086494f9d0afcf8701a254927ad2c60f2504efe2e4b668',
+        'beacon-php-instrumentation-1.1.0-php8.2-nts-linux-x86_64.tar.gz' => '54ac5c97b008d614e8ad51a334ff1f3004fe40457789dd14e476a645455cb3e6',
+        'beacon-php-instrumentation-1.1.0-php8.2-nts-macos-arm64.tar.gz' => '5b3bd0c51e5099d614c1e1b3f4b79b22e55cebff8cf0e35c175aa826c8b41878',
+        'beacon-php-instrumentation-1.1.0-php8.2-nts-vs16-x86_64.zip' => 'c87368929417e10417a7179ce89052cec3b38ec07d6809390f7c27f794c34821',
+        'beacon-php-instrumentation-1.1.0-php8.2-ts-vs16-x86_64.zip' => 'ccfca18117b0eded846d03a628c63b5b0fcf8ddede5d6b7f783ad643c1025e5d',
+        'beacon-php-instrumentation-1.1.0-php8.3-nts-linux-arm64.tar.gz' => 'a8f5619a38e31f81f4bda98616371bb2a249778a67c8776986e92c081603bf78',
+        'beacon-php-instrumentation-1.1.0-php8.3-nts-linux-x86_64.tar.gz' => 'caff1d133d3c330e9e5614fe979ac938f8a6fc6631cdcccdb7a0542f1ee190fd',
+        'beacon-php-instrumentation-1.1.0-php8.3-nts-macos-arm64.tar.gz' => '9157df6b13c23cd9c8a158bab56d745d6ebf75015c2940547d513e3d7d4d880a',
+        'beacon-php-instrumentation-1.1.0-php8.3-nts-vs16-x86_64.zip' => 'd843c438cc997df9d9ad5303a3b0467fa7dd413955a253c7b48e2606652bdd42',
+        'beacon-php-instrumentation-1.1.0-php8.3-ts-vs16-x86_64.zip' => 'ce9432933aa662b67bc855157fc02c37c45b0975c188a35e5d3638dc2bed0669',
+        'beacon-php-instrumentation-1.1.0-php8.4-nts-linux-arm64.tar.gz' => '9f3ea1035e245b264df25f60b7ebb56550bdc3d8767ea9af50023a11ba9872c5',
+        'beacon-php-instrumentation-1.1.0-php8.4-nts-linux-x86_64.tar.gz' => '5d330e35d895a300c0d5754e234d4e2289477d55de828f547880d05f2ddb94d0',
+        'beacon-php-instrumentation-1.1.0-php8.4-nts-macos-arm64.tar.gz' => '61b122229970c048bac3cc5099d55eac00fd673ad5afb2c552c0eca3bde5c9b7',
+        'beacon-php-instrumentation-1.1.0-php8.4-nts-vs17-x86_64.zip' => 'db1921c44d7176018ac916aa8912e1312f2cdfe602c2488df2851c8fee7f90d8',
+        'beacon-php-instrumentation-1.1.0-php8.4-ts-vs17-x86_64.zip' => 'dbe457246c7dd7c17c5419379f572f81a7cb6abe88edc02f77e070dbae06dfbe',
     ];
 
     /** @var array<string, string> */
