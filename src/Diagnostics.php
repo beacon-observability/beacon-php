@@ -32,7 +32,7 @@ final class Diagnostics
             'checks' => [
                 self::check('PHP >= 8.2', version_compare(PHP_VERSION, '8.2.0', '>='), PHP_VERSION),
                 self::check('ext-opentelemetry loaded', extension_loaded('opentelemetry'), $extensionVersion ?: 'not loaded'),
-                self::check('ext-opentelemetry >= 1.4.2', is_string($extensionVersion) && version_compare($extensionVersion, '1.4.2', '>='), $extensionVersion ?: 'not loaded'),
+                self::check('ext-opentelemetry >= 1.5.0', is_string($extensionVersion) && version_compare($extensionVersion, '1.5.0', '>='), $extensionVersion ?: 'not loaded'),
                 self::check('Beacon extension distribution', $extensionDistribution === 'Beacon', is_string($extensionDistribution) ? $extensionDistribution : 'not detected'),
                 self::check('OpenTelemetry API installed', interface_exists(\OpenTelemetry\API\Trace\TracerProviderInterface::class)),
                 self::check('OpenTelemetry SDK installed', class_exists(\OpenTelemetry\SDK\Trace\TracerProvider::class)),
