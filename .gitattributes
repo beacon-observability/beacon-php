@@ -11,3 +11,6 @@
 /dist export-ignore
 
 /beacon-setup.php export-ignore
+
+# Preserve immutable specification schema and reference-vector bytes on Windows.
+/tests/security/spec/** text eol=lf

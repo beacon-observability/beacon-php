@@ -14,6 +14,8 @@ final class Runtime
     private Collector $collector;
     private int $failedHooks = 0;
     private readonly bool $sbomEnabled;
+    private float $nextInventory = 0;
+    private int $refreshSeconds;
 
     public static function boot(): void
     {
@@ -38,12 +40,9 @@ final class Runtime
         }
         $this->events = new Events();
         $this->collector = new Collector($this->events);
-        $this->events->emit('beacon.security.health', [
-            'spec_commit' => Contract::SPEC_COMMIT, 'fingerprint_version' => Contract::FINGERPRINT_VERSION,
-            'hooks_available' => $available, 'failed_hooks' => $this->failedHooks,
-            'coverage' => 'php_builtin_value_correlation', 'coverage_gaps' => Collector::GAPS,
-            'delivery' => 'otel_api_only_no_receiver_acknowledgement',
-        ]);
+        $refresh = getenv('BEACON_SECURITY_SBOM_REFRESH_SECONDS') ?: '300';
+        $this->refreshSeconds = ctype_digit($refresh) && (int) $refresh > 0 ? min((int) $refresh, 2147483647) : 300;
+        $this->refreshInventory();
         $this->busy = false;
         // Register after provider initialization; emit SBOM before the SDK shutdown callback
         // by using OTel's shutdown handler, whose callbacks execute in reverse order.
@@ -84,6 +83,7 @@ final class Runtime
             }
             $this->busy = true;
             try {
+                $this->refreshInventory();
                 $value = $argument < 0
                     ? (isset($params[0]) && $params[0] instanceof \CurlHandle ? curl_getinfo($params[0], CURLINFO_EFFECTIVE_URL) : null)
                     : ($params[$argument] ?? null);
@@ -136,19 +136,14 @@ final class Runtime
         }
         $this->closed = true;
         $this->busy = true;
-        try {
-            if ($this->sbomEnabled) {
-                try {
-                    Sbom::snapshot($this->events);
-                } catch (\Throwable) {
-                    $this->events->emit('beacon.security.sbom.update_failed', ['reason' => 'runtime_snapshot_failed'], 'beacon_security_sbom');
-                }
-            }
-            $this->events->emit('beacon.security.health', [
-                'phase' => 'shutdown', 'api_calls' => $this->events->apiCalls, 'api_failures' => $this->events->failures,
-                'budget_dropped' => $this->events->dropped, 'delivery' => 'otel_api_only_no_receiver_acknowledgement',
-            ]);
-        } catch (\Throwable) {
-        }
+        $this->refreshInventory(true);
+    }
+
+    private function refreshInventory(bool $force = false): void
+    {
+        $now = hrtime(true) / 1000000000;
+        if (!$this->sbomEnabled || (!$force && $now < $this->nextInventory)) { return; }
+        try { Sbom::snapshot($this->events); } catch (\Throwable) { /* Preserve the previous successful inventory. */ }
+        $this->nextInventory = hrtime(true) / 1000000000 + $this->refreshSeconds;
     }
 }

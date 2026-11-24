@@ -10,6 +10,7 @@ final class Sbom
 {
     public static function snapshot(Events $events): void
     {
+        $timing = Contract::processTiming();
         $dependencies = [];
         foreach (get_loaded_extensions() as $extension) {
             $dependencies[] = ['name' => 'php-ext/' . $extension, 'version' => phpversion($extension) ?: ''];
@@ -18,13 +19,13 @@ final class Sbom
         // InstalledVersions is metadata, so only include packages whose path contains an included file.
         $files = array_slice(get_included_files(), 0, 8192);
         if (count(get_included_files()) > 8192) {
-            $reasons[] = 'included_file_budget';
+            throw new \OverflowException('Included file budget exceeded');
         }
         $candidates = [];
         if (class_exists(InstalledVersions::class)) {
             $packages = InstalledVersions::getInstalledPackages();
             if (count($packages) > 2048) {
-                $reasons[] = 'package_budget';
+                throw new \OverflowException('Package budget exceeded');
             }
             foreach (array_slice($packages, 0, 2048) as $package) {
                 $candidates[] = ['name' => $package, 'version' => InstalledVersions::getPrettyVersion($package) ?? '', 'path' => InstalledVersions::getInstallPath($package)];
@@ -39,8 +40,8 @@ final class Sbom
             try {
                 $observed = $application();
                 array_push($candidates, ...$observed['packages']);
-                if ($observed['truncated']) { $reasons[] = 'application_package_budget'; }
-            } catch (\Throwable) { $reasons[] = 'application_composer_metadata_unavailable'; }
+                if ($observed['truncated']) { throw new \OverflowException('Application package budget exceeded'); }
+            } catch (\Throwable $error) { throw new \RuntimeException('Application package scan failed', previous: $error); }
         }
         $seen = [];
         foreach ($candidates as $package) {
@@ -56,16 +57,7 @@ final class Sbom
             }
         }
         usort($dependencies, static fn (array $a, array $b): int => strcmp($a['name'], $b['name']));
-        $id = 'sbom-' . hash('sha256', $events->applicationId() . '|' . $events->instanceId() . '|php');
-        $release = 'runtime-' . hash('sha256', Contract::json($dependencies));
-        $parts = array_chunk($dependencies, 100) ?: [[]];
-        foreach ($parts as $index => $part) {
-            $events->emit('beacon.security.sbom.snapshot', [
-                'sbom_id' => $id, 'revision' => 1, 'release_id' => $release, 'status' => 'observed',
-                'completeness' => 'partial', 'reasons' => $reasons, 'component_count' => count($dependencies),
-                'part_index' => $index, 'part_count' => count($parts), 'dependencies' => $part,
-            ], 'beacon_security_sbom');
-        }
+        $events->inventory($dependencies, $timing);
         $events->cyclonedx($dependencies, $reasons);
     }
 }

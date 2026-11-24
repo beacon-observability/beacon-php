@@ -17,17 +17,17 @@ for scope in ['io.beacon.php.http', 'io.opentelemetry.contrib.php.symfony',
     assert re.search(pattern, text), f'Incoming parent not preserved for {scope}'
 for service in ['beacon-standalone-fpm-validation', 'beacon-standalone-apache-validation']:
     assert service in text, f'Missing server receipt: {service}'
-schema = json.loads((Path(__file__).parent.parent / 'security/spec/beacon-security-event-v1.schema.json').read_text())
+schema = json.loads((Path(__file__).parent.parent / 'security/spec/beacon-security-event-v2.schema.json').read_text())
 validator = Draft202012Validator(schema, format_checker=FormatChecker())
 events = []
 for line in text.splitlines():
     if line.startswith('Body: Str({'):
         value = json.loads(line[len('Body: Str('):-1])
-        if value.get('service', {}).get('service.name') == 'beacon-standalone-http-validation':
-            if value.get('source') in ['beacon_security', 'beacon_security_sbom']:
-                validator.validate(value)
-                events.append(value)
-snapshots = [e for e in events if e.get('event_name') == 'beacon.security.sbom.snapshot']
+        if value.get('service') == 'beacon-standalone-http-validation' and value.get('source') in ['beacon_security', 'beacon_security_sbom']:
+            event = json.loads(value['message'])
+            validator.validate(event)
+            events.append(event)
+snapshots = [e for e in events if e.get('event_name') == 'beacon.security.sbom.inventory']
 assert snapshots, 'Missing standalone Security SBOM'
 inventory = json.dumps(snapshots)
 for package in ['laravel/framework', 'symfony/http-kernel', 'guzzlehttp/guzzle']:

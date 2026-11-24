@@ -12,6 +12,7 @@ final class Collector
     public const GAPS = ['value_correlation_not_taint_tracking', 'transformed_inputs_not_tracked',
         'framework_routes_and_bodies_not_instrumented', 'sanitizers_not_modeled', 'source_values_may_coincide'];
     private int $findings = 0;
+    private array $seen = [];
     private array $reportedGaps = [];
 
     public function __construct(private readonly Events $events)
@@ -37,7 +38,6 @@ final class Collector
         if ($sources === [] && $rule !== 'command_execution') {
             return;
         }
-        ++$this->findings;
         $stack = [];
         $location = '';
         foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 12) as $frame) {
@@ -57,27 +57,36 @@ final class Collector
         $fingerprint = Contract::fingerprint(['application_id' => $this->events->applicationId(),
             'language' => 'php', 'rule' => $rule, 'sink' => $sink,
             'source_signatures' => array_map(static fn (array $s): string => $s['type'] . '|' . $s['name'], $sources)]);
-        $context = Span::getCurrent()->getContext();
+        if (isset($this->seen[$fingerprint])) { return; }
+        $this->seen[$fingerprint] = true;
+        ++$this->findings;
+        $span = Span::getCurrent();
+        $context = $span->getContext();
         $method = $_SERVER['REQUEST_METHOD'] ?? '';
-        $this->events->emit('beacon.security.finding', [
-            'evidence_id' => 'ev-' . bin2hex(random_bytes(16)), 'finding_id' => $fingerprint,
+        $payload = [
+            'occurrence_id' => Contract::uuid(), 'finding_id' => $fingerprint,
             'fingerprint_version' => 1, 'rule' => $rule,
-            'assessment' => $sources === [] ? 'observation' : 'candidate_risk', 'validation' => 'unvalidated',
-            'severity' => 'unknown', 'confidence' => 'conservative_flow', 'precision' => 'conservative',
-            'execution_observation' => 'invocation_attempt',
-            'trace_id' => $context->isValid() ? $context->getTraceId() : '',
-            'current_span_id' => $context->isValid() ? $context->getSpanId() : '',
-            'server_span_id' => '', 'trace_flags' => $context->getTraceFlags(),
-            'sources' => $sources, 'propagation' => [], 'ranges' => $ranges, 'sink' => $sink,
-            'truncated' => $this->reportedGaps !== [], 'coverage' => 'php_builtin_value_correlation',
+            'precision' => 'conservative', 'attack_evidence' => ['status' => 'unknown', 'reason' => 'approximate_flow_without_policy'],
+            'evidence_sampled' => true, 'collection_complete' => false,
+            'sink' => array_filter($sink, static fn (string $value): bool => $value !== ''),
             'coverage_gaps' => [...self::GAPS, ...array_keys($this->reportedGaps)],
-            'request' => ['method' => in_array($method, ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'], true) ? $method : '',
-                'route' => '', 'route_status' => 'unavailable', 'status_code' => null,
-                'started_at' => null, 'ended_at' => null, 'framework' => '', 'transport' => PHP_SAPI, 'error_type' => ''],
-            'component' => ['status' => 'unresolved', 'sbom_id' => '', 'revision' => null, 'release_id' => '',
-                'application_id' => $this->events->applicationId(), 'bom-ref' => '', 'reason' => 'sink_component_not_resolved',
-                'observed_url' => '', 'query' => ''], 'stack' => $stack,
-        ]);
+        ];
+        foreach (['sources' => $sources, 'ranges' => $ranges, 'stack' => $stack] as $key => $value) {
+            if ($value !== []) { $payload[$key] = $value; }
+        }
+        if (in_array($method, ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'], true)) {
+            $payload['request'] = ['method' => $method];
+        }
+        if ($this->reportedGaps !== []) {
+            $payload['truncated'] = true;
+            $payload['truncation_reason'] = 'collection_budget';
+        }
+        if ($context->isValid()) {
+            $payload['trace_id'] = $context->getTraceId();
+            $payload['span_id'] = $context->getSpanId();
+            $payload['trace_flags'] = $context->getTraceFlags();
+        }
+        $this->events->emit('beacon.security.finding', $payload, context: $span->storeInContext(\OpenTelemetry\Context\Context::getRoot()));
     }
 
     private function scan(array $values, string $path, string $type, string $sink, array &$sources, array &$ranges, int &$nodes, int $depth = 0): void
@@ -124,9 +133,5 @@ final class Collector
             return;
         }
         $this->reportedGaps[$reason] = true;
-        $this->events->emit('beacon.security.collection.incomplete', [
-            'truncated' => true, 'coverage_gaps' => [$reason], 'collection_status' => 'partial',
-            'counts' => ['objects' => 0, 'nodes' => 0, 'sources' => 0, 'findings' => $this->findings, 'retained_bytes' => 0],
-        ]);
     }
 }

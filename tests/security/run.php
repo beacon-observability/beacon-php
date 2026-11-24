@@ -46,54 +46,70 @@ putenv('SECURITY_ENABLED');
 $exporter = new InMemoryExporter();
 $provider = LoggerProvider::builder()->addLogRecordProcessor(new SimpleLogRecordProcessor($exporter))->build();
 $scope = Configurator::create()->withLoggerProvider($provider)->activate();
-$events = new Events(['service.name' => 'orders', 'service.namespace' => 'shop']);
-check($events->applicationId() === 'app-' . hash('sha256', 'shop|orders'), 'OTel application identity');
+$events = new Events(['service.name' => 'orders', 'service.namespace' => 'shop', 'tenant.id' => 'tenant-a']);
+check($events->applicationId() === 'app-' . hash('sha256', 'shop|orders'), 'OTel internal fingerprint scope');
 $collector = new Collector($events);
 $_GET = ['query' => 'PRIVATE_REQUEST_VALUE'];
 $_POST = $_COOKIE = [];
-$collector->observe('PDO::query', 'select PRIVATE_REQUEST_VALUE', 'sql_injection', 'sql_template');
+for ($i = 0; $i < 2; ++$i) { $collector->observe('PDO::query', 'select PRIVATE_REQUEST_VALUE', 'sql_injection', 'sql_template'); }
 $collector->observe('PDO::query', 'select 1', 'sql_injection', 'sql_template');
 $collector->observe('exec', 'true', 'command_execution', 'shell_script');
 Sbom::snapshot($events);
 $records = $exporter->getStorage()->getArrayCopy();
-check(count($records) >= 3, 'Finding and SBOM must be emitted');
-$event = json_decode($records[0]->getBody(), true, flags: JSON_THROW_ON_ERROR);
+check(count($records) === 3, 'Request deduplication, command observation and inventory');
+$envelope = json_decode($records[0]->getBody(), true, flags: JSON_THROW_ON_ERROR);
+$event = json_decode($envelope['message'], true, flags: JSON_THROW_ON_ERROR);
 check($event['sources'][0]['value_length'] === 21 && $event['ranges'][0]['start'] === 7, 'Source metadata and byte ranges');
-check($event['assessment'] === 'candidate_risk' && $event['validation'] === 'unvalidated', 'No vulnerability confirmation');
-check($event['precision'] === 'conservative' && $event['execution_observation'] === 'invocation_attempt', 'No execution or taint claim');
+check($event['attack_evidence']['status'] === 'unknown' && !$event['collection_complete'], 'No vulnerability or completeness claim');
+check($event['precision'] === 'conservative' && $event['schema_version'] === 2, 'Evidence schema and precision');
+check($envelope['outcome'] === 'unknown' && $envelope['severity'] === 'informational' && $envelope['tenant_id'] === 'tenant-a', 'SIEM semantics');
 check($records[0]->getInstrumentationScope()->getName() === 'io.beacon.security', 'Instrumentation scope');
 check($records[0]->getEventName() === $event['event_name'], 'Native event name');
 check($records[0]->getSeverityNumber() === 9 && $records[0]->getSeverityText() === 'INFO', 'Log severity');
 check($records[0]->getAttributes()->get('source') === 'beacon_security', 'Channel attribute');
-foreach ($records as $record) {
-    check(!str_contains($record->getBody(), 'PRIVATE_REQUEST_VALUE'), 'Never emit raw request or sink values');
+foreach ($records as $record) { check(!str_contains($record->getBody(), 'PRIVATE_REQUEST_VALUE'), 'Never emit raw values'); }
+// Filtering is before record admission; a later eligible occurrence can still be exported.
+$event['attack_evidence']['status'] = 'no_evidence';
+for ($i = 0; $i < 300; ++$i) { $events->emit('beacon.security.finding', $event); }
+check(count($exporter->getStorage()) === 3 && $events->dropped === 0, 'Filtered observations consume no delivery budget');
+$event['attack_evidence']['status'] = 'unknown';
+$events->emit('beacon.security.finding', $event);
+check(count($exporter->getStorage()) === 4, 'Unknown remains eligible');
+putenv('BEACON_SECURITY_EXPORT_NO_EVIDENCE_ENABLED=true');
+$event['attack_evidence']['status'] = 'no_evidence';
+$events->emit('beacon.security.finding', $event);
+check(count($exporter->getStorage()) === 5, 'Opt-in no-evidence export');
+putenv('BEACON_SECURITY_EXPORT_NO_EVIDENCE_ENABLED');
+$before = count($exporter->getStorage());
+$events->emit('beacon.security.health');
+check(count($exporter->getStorage()) === $before, 'No legacy health events');
+// Multipart planning includes escaping, Unicode and all enrichment in the final wire budget.
+$dependencies = array_map(static fn (int $i): array => ['name' => $i . str_repeat('"汉😀', 100), 'version' => '1'], range(0, 99));
+$events->inventory($dependencies, Contract::processTiming());
+$logs = $exporter->getStorage()->getArrayCopy();
+$parts = array_slice($logs, $before);
+check(count($parts) > 1, 'Multipart inventory');
+$assembled = [];
+foreach ($parts as $record) {
+    check(strlen($record->getBody()) <= 65536, 'Final wire budget');
+    $body = json_decode(json_decode($record->getBody(), true)['message'], true);
+    array_push($assembled, ...$body['dependencies']);
 }
-check(json_decode($records[1]->getBody(), true)['assessment'] === 'observation', 'Uncorrelated command execution is an observation');
-$_GET = ['too_large' => str_repeat('a', 4097)];
-$collector->observe('PDO::query', 'select 1', 'sql_injection', 'sql_template');
+check($assembled === $dependencies, 'Every dependency appears exactly once');
+$before = count($logs);
+try { $events->inventory([['name' => str_repeat('x', 100000), 'version' => '1']], Contract::processTiming()); throw new RuntimeException('Expected overflow'); }
+catch (OverflowException) { check(count($exporter->getStorage()) === $before, 'No partial inventory on oversized entry'); }
+$events->inventory([], Contract::processTiming());
 $logs = $exporter->getStorage()->getArrayCopy();
-check(end($logs)->getEventName() === 'beacon.security.collection.incomplete', 'Oversized source must report incomplete collection');
-$events->emit('beacon.security.health', ['large' => str_repeat('a', 65536)]);
-$logs = $exporter->getStorage()->getArrayCopy();
-check(json_decode(end($logs)->getBody(), true)['truncated'] === true, 'Record byte budget');
-for ($i = 0; $i < 300; ++$i) {
-    $events->emit('beacon.security.health');
-}
-$logs = $exporter->getStorage()->getArrayCopy();
-check(count($logs) === 257 && end($logs)->getEventName() === 'beacon.security.export.dropped', 'Channel count budget and loss event');
-// Keep events for independent JSON Schema validation, with all byte budgets applied.
 if (($path = getenv('BEACON_TEST_EVENTS')) !== false) {
-    file_put_contents($path, implode("\n", array_map(static fn ($r): string => $r->getBody(), $logs)) . "\n");
+    file_put_contents($path, implode("\n", array_map(static fn ($record): string => $record->getBody(), $logs)) . "\n");
 }
-// Failed local snapshots must be observable without exposing the configured path.
 putenv('BEACON_SECURITY_LOCAL_OUTPUT_ENABLED=true');
 putenv('BEACON_SECURITY_OUTPUT=' . __FILE__ . '/private-diagnostic-path');
-new Events(['service.name' => 'orders']);
-$logs = $exporter->getStorage()->getArrayCopy();
-check(end($logs)->getEventName() === 'beacon.security.snapshot.failed', 'Diagnostic write failure event');
-check(!str_contains(end($logs)->getBody(), 'private-diagnostic-path'), 'Do not export local paths in diagnostics');
+$local = new Events(['service.name' => 'orders']);
+check($local->failures === 1 && count($exporter->getStorage()) === count($logs), 'Local failure creates no online diagnostic event');
 putenv('BEACON_SECURITY_LOCAL_OUTPUT_ENABLED');
 putenv('BEACON_SECURITY_OUTPUT');
 $scope->detach();
 $provider->shutdown();
-echo "Security contract, privacy, SBOM and budget tests passed.\n";
+echo "Security contract, privacy, filtering, SBOM and byte budget tests passed.\n";

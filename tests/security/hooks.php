@@ -21,7 +21,7 @@ if (($argv[1] ?? '') !== '--child') {
         throw new RuntimeException('Hook child failed: ' . $out . $error);
     }
     $json = file_get_contents($path);
-    $events = array_map(static fn (string $line): array => json_decode($line, true, flags: JSON_THROW_ON_ERROR), file($path, FILE_IGNORE_NEW_LINES));
+    $events = array_map(static fn (string $line): array => json_decode(json_decode($line, true, flags: JSON_THROW_ON_ERROR)['message'], true, flags: JSON_THROW_ON_ERROR), file($path, FILE_IGNORE_NEW_LINES));
     $findings = array_values(array_filter($events, static fn (array $e): bool => $e['event_name'] === 'beacon.security.finding'));
     $functions = array_column(array_column($findings, 'sink'), 'function');
     foreach (['PDO::query', 'PDO::prepare', 'file_get_contents', 'file_put_contents', 'exec', 'curl_exec'] as $function) {
@@ -29,7 +29,7 @@ if (($argv[1] ?? '') !== '--child') {
             throw new RuntimeException('Missing real hook: ' . $function . ' / ' . implode(',', $functions));
         }
     }
-    if (count(array_filter($events, static fn (array $e): bool => $e['event_name'] === 'beacon.security.sbom.snapshot')) === 0
+    if (count(array_filter($events, static fn (array $e): bool => $e['event_name'] === 'beacon.security.sbom.inventory')) === 0
         || str_contains($json, 'PRIVATE_INPUT_7bc1')) {
         throw new RuntimeException('SBOM lifecycle or privacy failure');
     }
