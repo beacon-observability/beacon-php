@@ -25,6 +25,8 @@ final class Diagnostics
                 'spec_commit' => Security\Contract::SPEC_COMMIT,
                 'schema_version' => Security\Contract::SCHEMA_VERSION,
                 'fingerprint_version' => Security\Contract::FINGERPRINT_VERSION,
+                'output_profile' => Security\Contract::OUTPUT_PROFILE,
+                'export_no_evidence_enabled' => Security\Contract::enabled('BEACON_SECURITY_EXPORT_NO_EVIDENCE_ENABLED'),
                 'delivery' => 'otel_api_only_no_receiver_acknowledgement',
             ],
             'checks' => [
@@ -62,7 +64,7 @@ final class Diagnostics
             fprintf($stream, "[%s] %s: %s\n", $check['status'], $check['name'], $check['detail']);
         }
 
-        fprintf($stream, "[INFO] Beacon Security: %s (schema=1, fingerprint=1; no receiver acknowledgement)\n",
+        fprintf($stream, "[INFO] Beacon Security: %s (schema=2, fingerprint=1, profile=beacon-security-siem-v1; no receiver acknowledgement)\n",
             ($report['security']['enabled'] ?? false) ? 'enabled' : 'disabled');
 
         $installed = array_filter($report['components'], static fn (array $component): bool => $component['installed']);

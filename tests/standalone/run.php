@@ -56,7 +56,7 @@ foreach ($hashes as $file => $hash) { expect(hash_file('sha256', $base . '/appli
 $evidence = glob($base . '/evidence/php-*/evidence.jsonl');
 expect(count($evidence) === 1, 'Security diagnostic lifecycle did not produce one runtime snapshot');
 $body = file_get_contents($evidence[0]);
-expect(str_contains($body, 'beacon.security.finding') && str_contains($body, 'beacon.security.sbom.snapshot') && !str_contains($body, 'PRIVATE_STANDALONE_VALUE'), 'Security startup/privacy/SBOM failure');
+expect(str_contains($body, 'beacon.security.finding') && str_contains($body, 'beacon.security.sbom.inventory') && !str_contains($body, 'PRIVATE_STANDALONE_VALUE'), 'Security startup/privacy/SBOM failure');
 $doctor = run([PHP_BINARY, $installer, 'doctor', ...$arguments], $environment, $base . '/application');
 expect($doctor[0] === 0 && str_contains($doctor[1], '[OK] runtime_loaded'), 'Installed runtime doctor failed: ' . $doctor[1] . $doctor[2]);
 $disabled = run([PHP_BINARY, $installer, 'doctor', ...$arguments], $environment + ['OTEL_SDK_DISABLED' => 'true'], $base . '/application');

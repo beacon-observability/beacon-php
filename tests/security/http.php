@@ -35,12 +35,13 @@ try {
         $body = file_get_contents($file);
         if (str_contains($body, 'PRIVATE_HTTP_VALUE_')) { throw new RuntimeException('HTTP input leaked to evidence'); }
         foreach (file($file, FILE_IGNORE_NEW_LINES) as $line) {
-            $event = json_decode($line, true, flags: JSON_THROW_ON_ERROR);
+            $event = json_decode(json_decode($line, true, flags: JSON_THROW_ON_ERROR)['message'], true, flags: JSON_THROW_ON_ERROR);
             if ($event['event_name'] === 'beacon.security.finding') { $findings[] = $event; }
         }
     }
     if (count($findings) !== 2 || $findings[0]['finding_id'] !== $findings[1]['finding_id']
-        || $findings[0]['instance_id'] === $findings[1]['instance_id']
+        || $findings[0]['instance_id'] !== $findings[1]['instance_id']
+        || $findings[0]['occurrence_id'] === $findings[1]['occurrence_id']
         || $findings[0]['request']['method'] !== 'GET') {
         throw new RuntimeException('HTTP request isolation or cross-request fingerprint stability failed');
     }

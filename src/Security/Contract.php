@@ -6,9 +6,51 @@ namespace Beacon\PHP\Security;
 
 final class Contract
 {
-    public const SPEC_COMMIT = 'af1b834501210bfd197bf606163680129cc5d09b';
-    public const SCHEMA_VERSION = 1;
+    public const SPEC_COMMIT = '4a30f30e1027568cfbcf8661079a072fc89bd825';
+    public const SCHEMA_VERSION = 2;
     public const FINGERPRINT_VERSION = 1;
+
+    public const OUTPUT_PROFILE = 'beacon-security-siem-v1';
+
+    public static function uuid(): string
+    {
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 15) | 64);
+        $bytes[8] = chr((ord($bytes[8]) & 63) | 128);
+        $hex = bin2hex($bytes);
+        return substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4) . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20);
+    }
+
+    public static function processId(): string
+    {
+        static $id;
+        if ($id !== null) { return $id; }
+        $stat = @file_get_contents('/proc/self/stat');
+        $boot = @file_get_contents('/proc/sys/kernel/random/boot_id');
+        if ($stat === false || $boot === false) { return $id = self::uuid(); }
+        $fields = preg_split('/\s+/', substr($stat, strrpos($stat, ')') + 2));
+        $hex = substr(hash('sha256', $boot . '|' . getmypid() . '|' . $fields[19]), 0, 32);
+        return $id = substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4) . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20);
+    }
+
+    public static function timestamp(float $time): string
+    {
+        return gmdate('Y-m-d\\TH:i:s', (int) $time) . sprintf('.%06dZ', (int) (($time - floor($time)) * 1000000));
+    }
+
+    public static function processTiming(): array
+    {
+        $stat = @file_get_contents('/proc/self/stat');
+        $uptime = @file_get_contents('/proc/uptime');
+        $boot = @file_get_contents('/proc/stat');
+        if ($stat === false || $uptime === false || $boot === false || !preg_match('/^btime ([0-9]+)$/m', $boot, $bootTime)) { throw new \RuntimeException('Process timing unavailable'); }
+        // Linux exports /proc process start in USER_HZ ticks (100 per second).
+        $fields = preg_split('/\s+/', substr($stat, strrpos($stat, ')') + 2));
+        $elapsed = max(0, (float) explode(' ', $uptime)[0] - ((int) $fields[19]) / 100);
+        static $started;
+        $started ??= self::timestamp((int) $bootTime[1] + ((int) $fields[19]) / 100);
+        return ['started_at' => $started, 'uptime_ms' => (int) ($elapsed * 1000)];
+    }
 
     public static function fingerprint(array $input): string
     {
@@ -33,7 +75,7 @@ final class Contract
 
     public static function json(mixed $value): string
     {
-        return json_encode($value, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return json_encode($value, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_LINE_TERMINATORS);
     }
 
     public static function enabled(string $key, bool $default = false): bool

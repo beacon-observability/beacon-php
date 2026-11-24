@@ -77,6 +77,12 @@ if (($security['commit'] ?? '') !== \Beacon\PHP\Security\Contract::SPEC_COMMIT
     $fail('Security artifact provenance must match the implementation');
 }
 
+foreach (['schema_sha256' => 'beacon-security-event-v2.schema.json', 'siem_schema_sha256' => 'beacon-security-siem-v1.schema.json'] as $key => $file) {
+    if (($security[$key] ?? '') !== hash_file('sha256', $root . '/tests/security/spec/' . $file)) {
+        $fail('Security schema digest mismatch: ' . $file);
+    }
+}
+
 $composer = json_decode((string) file_get_contents($root . '/composer.json'), true, flags: JSON_THROW_ON_ERROR);
 if (($composer['name'] ?? null) !== 'beacon-observability/beacon-php') {
     $fail('Composer package name is incorrect');
