@@ -147,7 +147,7 @@ jobs:
           grep -F 'beacon.release.validation' .otelcol/collector.log
           grep -F 'beacon_integration_probe' .otelcol/collector.log
           grep -F 'beacon.security.finding' .otelcol/collector.log
-          grep -F 'beacon.security.sbom.snapshot' .otelcol/collector.log
+          grep -F 'beacon.security.sbom.inventory' .otelcol/collector.log
           grep -F 'io.beacon.security' .otelcol/collector.log
           /tmp/security-schema-venv/bin/python tests/security/verify-collector.py .otelcol/collector.log
           /tmp/security-schema-venv/bin/python tests/standalone/verify-collector.py .otelcol/collector.log
