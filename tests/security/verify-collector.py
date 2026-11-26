@@ -6,16 +6,13 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker
 
 text = Path(sys.argv[1]).read_text()
-schema = json.loads((Path(__file__).parent / 'spec/beacon-security-event-v2.schema.json').read_text())
+schema = json.loads((Path(__file__).parent / 'spec/beacon-security-log-body-v1.schema.json').read_text())
 validator = Draft202012Validator(schema, format_checker=FormatChecker())
 events = []
 for line in text.splitlines():
     if line.startswith('Body: Str({'):
         event = json.loads(line[len('Body: Str('):-1])
         if event.get('source') in ('beacon_security', 'beacon_security_sbom'):
-            envelope = event
-            event = json.loads(envelope["message"])
-            assert envelope["instance_id"] == event["instance_id"]
             validator.validate(event)
             events.append(event)
 findings = [e for e in events if e['event_name'] == 'beacon.security.finding'

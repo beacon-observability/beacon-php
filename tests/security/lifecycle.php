@@ -32,7 +32,7 @@ foreach ([
     }
     if ($index === 3) {
         $body = file_get_contents($path);
-        if (!str_contains($body, 'security_finding') || str_contains($body, 'beacon.security.sbom.')
+        if (!str_contains($body, 'beacon.security.finding') || str_contains($body, 'beacon.security.sbom.')
             || glob($directory . '/php-*/application.cdx.json') !== []) {
             throw new RuntimeException('SBOM disable gate failed');
         }

@@ -25,11 +25,11 @@ try {
     $error = stream_get_contents($pipes[2]);
     fclose($pipes[1]); fclose($pipes[2]);
     if (proc_close($process) !== 0 || $error !== '') { throw new RuntimeException('Periodic child failed: ' . $output . $error); }
-    $records = array_map(static fn (string $line): array => json_decode(json_decode($line, true)['message'], true), file($path, FILE_IGNORE_NEW_LINES));
+    $records = array_map(static fn (string $line): array => json_decode(json_decode($line, true)['body'], true) + ['event_time' => json_decode($line, true)['time_unix_nano']], file($path, FILE_IGNORE_NEW_LINES));
     if (count($records) < 3) { throw new RuntimeException('Initial, cooperative periodic, and shutdown inventory are required'); }
     foreach ($records as $index => $record) {
         if ($record['event_name'] !== 'beacon.security.sbom.inventory' || $record['instance_id'] !== $records[0]['instance_id']
-            || $record['started_at'] !== $records[0]['started_at'] || ($index > 0 && $record['observed_at'] <= $records[$index - 1]['observed_at'])) {
+            || $record['started_at'] !== $records[0]['started_at'] || ($index > 0 && $record['event_time'] <= $records[$index - 1]['event_time'])) {
             throw new RuntimeException('Inventory process identity or timing changed');
         }
     }

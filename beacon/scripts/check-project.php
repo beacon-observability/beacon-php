@@ -77,7 +77,7 @@ if (($security['commit'] ?? '') !== \Beacon\PHP\Security\Contract::SPEC_COMMIT
     $fail('Security artifact provenance must match the implementation');
 }
 
-foreach (['schema_sha256' => 'beacon-security-event-v2.schema.json', 'siem_schema_sha256' => 'beacon-security-siem-v1.schema.json'] as $key => $file) {
+foreach (['schema_sha256' => 'beacon-security-event-v2.schema.json', 'siem_schema_sha256' => 'beacon-security-siem-v1.schema.json', 'log_body_schema_sha256' => 'beacon-security-log-body-v1.schema.json'] as $key => $file) {
     if (($security[$key] ?? '') !== hash_file('sha256', $root . '/tests/security/spec/' . $file)) {
         $fail('Security schema digest mismatch: ' . $file);
     }

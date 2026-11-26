@@ -6,11 +6,11 @@ namespace Beacon\PHP\Security;
 
 final class Contract
 {
-    public const SPEC_COMMIT = '4a30f30e1027568cfbcf8661079a072fc89bd825';
+    public const SPEC_COMMIT = 'd9d76e5a41d974d294bb596e06918bb954319bf6';
     public const SCHEMA_VERSION = 2;
     public const FINGERPRINT_VERSION = 1;
 
-    public const OUTPUT_PROFILE = 'beacon-security-siem-v1';
+    public const OUTPUT_PROFILE = 'beacon-security-log-body-v1';
 
     public static function uuid(): string
     {

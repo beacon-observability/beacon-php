@@ -35,7 +35,9 @@ try {
         $body = file_get_contents($file);
         if (str_contains($body, 'PRIVATE_HTTP_VALUE_')) { throw new RuntimeException('HTTP input leaked to evidence'); }
         foreach (file($file, FILE_IGNORE_NEW_LINES) as $line) {
-            $event = json_decode(json_decode($line, true, flags: JSON_THROW_ON_ERROR)['message'], true, flags: JSON_THROW_ON_ERROR);
+            $record = json_decode($line, true, flags: JSON_THROW_ON_ERROR);
+            $event = json_decode($record['body'], true, flags: JSON_THROW_ON_ERROR);
+            $event['occurrence_id'] = $record['attributes']['event_id'];
             if ($event['event_name'] === 'beacon.security.finding') { $findings[] = $event; }
         }
     }
