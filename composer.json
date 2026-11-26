@@ -45,6 +45,7 @@
             "@php tests/run.php",
             "@php tests/security/run.php",
             "@php tests/security/siem.php",
+            "@php tests/security/log-record.php",
             "@php tests/security/hooks.php",
             "@php tests/security/lifecycle.php",
             "@php tests/security/http.php",

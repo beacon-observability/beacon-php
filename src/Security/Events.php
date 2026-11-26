@@ -48,7 +48,7 @@ final class Events
 
     public function wire(array $event): string
     {
-        return Contract::json(Siem::normalize(Contract::json($event), $this->resource));
+        return LogRecord::bind($event)['body'];
     }
 
     public function emit(string $name, array $payload = [], string $source = 'beacon_security', ?ContextInterface $context = null): void
@@ -57,7 +57,8 @@ final class Events
         if ($name === 'beacon.security.finding' && ($payload['attack_evidence']['status'] ?? '') === 'no_evidence'
             && !Contract::enabled('BEACON_SECURITY_EXPORT_NO_EVIDENCE_ENABLED')) { return; }
         $event = $this->event($name, $payload, $source);
-        $body = $this->wire($event);
+        $bound = LogRecord::bind($event);
+        $body = $bound['body'];
         if (strlen($body) > self::MAX_BYTES && $name === 'beacon.security.finding') {
             foreach (['sources', 'propagation', 'ranges', 'stack'] as $field) { unset($event[$field]); }
             $event['evidence_sampled'] = false;
@@ -70,11 +71,13 @@ final class Events
         ++$this->records;
         try {
             $this->logger->logRecordBuilder()->setSeverityNumber(9)->setSeverityText('INFO')
-                ->setEventName($name)->setAttributes(['event.name' => $name, 'source' => $source])
+                ->setEventName($name)->setAttributes(['event.name' => $name] + $bound['attributes'])
+                ->setTimestamp((int) $bound['time_unix_nano'])
                 ->setContext($context ?? false)->setBody($body)->emit();
             ++$this->apiCalls;
         } catch (\Throwable) { ++$this->failures; }
-        if (is_resource($this->evidence) && @fwrite($this->evidence, $body . "\n") !== strlen($body) + 1) {
+        $diagnostic = Contract::json(['time_unix_nano' => $bound['time_unix_nano'], 'body' => $body, 'attributes' => $bound['attributes']]);
+        if (is_resource($this->evidence) && @fwrite($this->evidence, $diagnostic . "\n") !== strlen($diagnostic) + 1) {
             fclose($this->evidence);
             $this->evidence = null;
             $this->snapshotFailed();

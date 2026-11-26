@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Beacon\PHP\Security;
 
-/** Lossless projection of the serialized evidence at the producer export boundary. */
+/** Optional historical SIEM reference; producers use LogRecord. */
 final class Siem
 {
     public static function normalize(string $raw, array $resource = [], array $context = []): array

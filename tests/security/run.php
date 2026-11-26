@@ -58,11 +58,12 @@ Sbom::snapshot($events);
 $records = $exporter->getStorage()->getArrayCopy();
 check(count($records) === 3, 'Request deduplication, command observation and inventory');
 $envelope = json_decode($records[0]->getBody(), true, flags: JSON_THROW_ON_ERROR);
-$event = json_decode($envelope['message'], true, flags: JSON_THROW_ON_ERROR);
+$event = $envelope;
+$event['occurrence_id'] = $records[0]->getAttributes()->get('event_id');
 check($event['sources'][0]['value_length'] === 21 && $event['ranges'][0]['start'] === 7, 'Source metadata and byte ranges');
 check($event['attack_evidence']['status'] === 'unknown' && !$event['collection_complete'], 'No vulnerability or completeness claim');
 check($event['precision'] === 'conservative' && $event['schema_version'] === 2, 'Evidence schema and precision');
-check($envelope['outcome'] === 'unknown' && $envelope['severity'] === 'informational' && $envelope['tenant_id'] === 'tenant-a', 'SIEM semantics');
+check(!array_key_exists('message', $envelope) && !array_key_exists('observed_at', $envelope) && !array_key_exists('occurrence_id', $envelope) && $records[0]->getTimestamp() > 0, 'Native event metadata');
 check($records[0]->getInstrumentationScope()->getName() === 'io.beacon.security', 'Instrumentation scope');
 check($records[0]->getEventName() === $event['event_name'], 'Native event name');
 check($records[0]->getSeverityNumber() === 9 && $records[0]->getSeverityText() === 'INFO', 'Log severity');
@@ -92,7 +93,7 @@ check(count($parts) > 1, 'Multipart inventory');
 $assembled = [];
 foreach ($parts as $record) {
     check(strlen($record->getBody()) <= 65536, 'Final wire budget');
-    $body = json_decode(json_decode($record->getBody(), true)['message'], true);
+    $body = json_decode($record->getBody(), true);
     array_push($assembled, ...$body['dependencies']);
 }
 check($assembled === $dependencies, 'Every dependency appears exactly once');
@@ -110,6 +111,20 @@ $local = new Events(['service.name' => 'orders']);
 check($local->failures === 1 && count($exporter->getStorage()) === count($logs), 'Local failure creates no online diagnostic event');
 putenv('BEACON_SECURITY_LOCAL_OUTPUT_ENABLED');
 putenv('BEACON_SECURITY_OUTPUT');
+// Event time and identity are stable through the SDK rather than replaced at emission.
+$event['observed_at'] = '2026-10-02T00:00:00.123456789Z';
+$event['occurrence_id'] = 'retry-stable-id';
+$event['attack_evidence']['status'] = 'unknown';
+$events->emit('beacon.security.finding', $event);
+$events->emit('beacon.security.finding', $event);
+$recent = array_slice($exporter->getStorage()->getArrayCopy(), -2);
+foreach ($recent as $record) {
+    check($record->getTimestamp() === 1790899200123456789, 'Exact native nanosecond timestamp');
+    check($record->getAttributes()->get('event_id') === 'retry-stable-id', 'Stable native event identity');
+    $body = json_decode($record->getBody(), true, flags: JSON_THROW_ON_ERROR);
+    check(!array_key_exists('observed_at', $body) && !array_key_exists('occurrence_id', $body) && !array_key_exists('message', $body), 'Metadata moves without Body duplicates');
+}
+check($recent[0]->getBody() === $recent[1]->getBody(), 'Retries preserve Body');
 $scope->detach();
 $provider->shutdown();
 echo "Security contract, privacy, filtering, SBOM and byte budget tests passed.\n";
