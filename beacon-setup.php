@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 final class BeaconSetup
 {
-    public const AGENT_VERSION = '2.0.0';
+    public const AGENT_VERSION = '3.0.0';
     public const AGENT_REPOSITORY = 'https://github.com/beacon-observability/beacon-php';
     public const RUNTIME_SHA256 = '@runtime_sha256@';
     public const AGENT_SHA256 = '@agent_sha256@';
