@@ -22,6 +22,7 @@ Before publishing a release:
 
    Build the installer after the library ZIP is final: it embeds both archive hashes.
    Publish immutable installer, runtime TAR.GZ, library ZIP, license and checksum assets from the tagged commit.
+
 7. Download the published installer and runtime/native assets, verify `SHA256SUMS`, and repeat cold
    standalone installation, lifecycle and real OTLP receipt. Also validate advanced Composer project
    integration with PHP ZIP enabled and an artifact directory containing only the library ZIP.
@@ -37,3 +38,19 @@ The release workflow installs the generated ZIP into a clean Composer project be
 The default standalone lifecycle matrix covers Linux glibc x86_64 PHP 8.2–8.4. The runtime build
 prunes framework and client dependencies; inspect `runtime.json` and the package inventory before
 claiming additional platform/framework support. Never publish the unresolved source installer template.
+
+## Release note layout
+
+- Keep the GitHub Release title to `vX.Y.Z`; do not repeat the project/version
+  as an H1 in the body.
+- Use `Changes`, `Upgrade`, `Distribution`, and `Validation` H2 sections,
+  omitting sections that do not apply. Prefer short bullets and a small table
+  for breaking field migrations.
+- Keep each paragraph and list item on one physical line. Do not manually
+  hard-wrap prose for an 80-column editor: GitHub Release rendering can turn
+  those breaks into fragmented lines.
+- Keep consumer changes, defaults, rollback versions, component versions, and
+  validated scope explicit. Link full commit/digest values, implementation
+  history, and detailed validation receipts instead of embedding long blocks.
+- Review the rendered GitHub page after editing. Preserve published tags and
+  assets when changing release text.
